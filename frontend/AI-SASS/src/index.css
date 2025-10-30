@@ -3,6 +3,6 @@
 *{
     font-family: 'Outfit', sans-serif;
 }
-@theme {
+:root {
     --color-primary: #504450;
 } 
