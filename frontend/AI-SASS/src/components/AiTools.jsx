@@ -1,10 +1,39 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AiToolsData } from '../assets/assets';
 
-const AiTools = () => {
+const AiTools = ({ variant = 'grid', activeSidebar, onCloseSidebar }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = true;
+
+  if (variant === 'sidebar') {
+    return (
+      <div className='space-y-1'>
+        {AiToolsData.map((tool) => {
+          const isActive = location.pathname === tool.path;
+          return (
+            <div 
+              key={tool.path}
+              onClick={() => {
+                navigate(tool.path);
+                if (window.innerWidth < 640 && onCloseSidebar) {
+                  onCloseSidebar();
+                }
+              }}
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg cursor-pointer transition-colors
+                ${isActive 
+                  ? 'bg-gradient-to-r from-[#3C81F6] to-[#9234EA] text-white' 
+                  : 'hover:bg-gray-50 text-gray-700'}`}
+            >
+              <tool.Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
+              <span className='text-sm font-medium'>{tool.title}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className='px-4 sm:px-20 xl:px-32 my-24'>
@@ -18,7 +47,7 @@ const AiTools = () => {
       <div className='flex flex-wrap mt-10 justify-center'>
         {AiToolsData.map((tool, index) => (
           <div
-            key={index}
+            key={tool.path}
             className='p-8 m-4 max-w-xs rounded-lg bg-[#FDFDFE] shadow-lg border border-gray-100 hover:-translate-y-1 transition-all duration-300 cursor-pointer'
             onClick={() => user && navigate(tool.path)}
           >

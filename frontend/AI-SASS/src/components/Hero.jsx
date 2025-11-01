@@ -25,7 +25,7 @@ const Hero = () => {
       <div className="flex flex-wrap justify-center gap-4 text-sm max-sm:text-xs">
         <button
           onClick={() => navigate('/ai')}
-          className="bg-primary text-white px-10 py-3 rounded-lg hover:scale-105 active:scale-95 transition cursor-pointer"
+          className="bg-blue-600 text-white px-10 py-3 rounded-lg hover:scale-105 active:scale-95 transition cursor-pointer"
         >
           Start creating now
         </button>
