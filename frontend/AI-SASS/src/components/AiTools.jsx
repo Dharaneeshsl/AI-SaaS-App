@@ -1,11 +1,13 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AiToolsData } from '../assets/assets';
+import { useAuth } from '../auth/authContext';
 
-const AiTools = ({ variant = 'grid', activeSidebar, onCloseSidebar }) => {
+const AiTools = ({ variant = 'grid', onCloseSidebar }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const user = true;
+  const { user, isConfigured } = useAuth();
+  const canOpenTools = Boolean(user) || !isConfigured;
 
   if (variant === 'sidebar') {
     return (
@@ -26,7 +28,7 @@ const AiTools = ({ variant = 'grid', activeSidebar, onCloseSidebar }) => {
                   ? 'bg-gradient-to-r from-[#3C81F6] to-[#9234EA] text-white' 
                   : 'hover:bg-gray-50 text-gray-700'}`}
             >
-              <tool.Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
+              <tool.Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-500'}`} />
               <span className='text-sm font-medium'>{tool.title}</span>
             </div>
           );
@@ -45,11 +47,11 @@ const AiTools = ({ variant = 'grid', activeSidebar, onCloseSidebar }) => {
       </div>
 
       <div className='flex flex-wrap mt-10 justify-center'>
-        {AiToolsData.map((tool, index) => (
+        {AiToolsData.map((tool) => (
           <div
             key={tool.path}
             className='p-8 m-4 max-w-xs rounded-lg bg-[#FDFDFE] shadow-lg border border-gray-100 hover:-translate-y-1 transition-all duration-300 cursor-pointer'
-            onClick={() => user && navigate(tool.path)}
+            onClick={() => canOpenTools && navigate(tool.path)}
           >
             <tool.Icon
               className='w-12 h-12 p-3 text-white rounded-xl'

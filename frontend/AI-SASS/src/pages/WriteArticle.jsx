@@ -1,10 +1,18 @@
-import React from 'react'
+import ToolPage from '../components/ToolPage'
 
 const WriteArticle = () => {
   return (
-    <div>
-        <h1>WriteArticle</h1>
-    </div>
+    <ToolPage
+      title="AI Article Writer"
+      description="Draft structured long-form content from a topic, tone, and target length."
+      outputType="article"
+      submitLabel="Write article"
+      fields={[
+        { name: 'topic', label: 'Topic', placeholder: 'How small teams can adopt AI safely' },
+        { name: 'tone', label: 'Tone', type: 'select', options: ['Professional', 'Friendly', 'Persuasive', 'Educational'] },
+        { name: 'length', label: 'Length', type: 'select', options: ['Short', 'Medium', 'Long'] },
+      ]}
+    />
   )
 }
 

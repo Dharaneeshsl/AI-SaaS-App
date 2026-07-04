@@ -1,5 +1,5 @@
 import React from 'react'
-import { PricingTable } from '@clerk/clerk-react'
+import { BillingPlans } from '../auth/AuthProvider'
 
 const Plan = () => {
   return (
@@ -9,7 +9,7 @@ const Plan = () => {
             <p className='text-gray-500 max-w-lg mx-auto'>Start for free and scale up as you grow.Find the perfect plan for your content creation needs</p>
         </div>
         <br />
-        <div><PricingTable />
+        <div><BillingPlans />
         </div>
         
     </div>

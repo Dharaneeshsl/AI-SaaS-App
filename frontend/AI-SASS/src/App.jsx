@@ -22,7 +22,7 @@ const App = () => {
          <Route index element={<DashBoard />}/>
          <Route path="blogtitle" element={<Blogtitle />}/>
          <Route path="writearticle" element={<WriteArticle />}/>
-         <Route path="reviewarticle" element={<ReviewResume />}/>
+         <Route path="reviewresume" element={<ReviewResume />}/>
          <Route path="removebackground" element={<RemoveBackground />}/>
          <Route path="removeobject" element={<RemoveObject />}/>
          <Route path="generateimages" element={<GenerateImages />}/>

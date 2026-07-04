@@ -1,10 +1,16 @@
-import React from 'react'
+import ToolPage from '../components/ToolPage'
 
 const RemoveBackground = () => {
   return (
-    <div>
-        <h1>RemoveBackground</h1>
-    </div>
+    <ToolPage
+      title="Background Removal"
+      description="Upload an image and prepare it for transparent-background processing."
+      outputType="background"
+      submitLabel="Remove background"
+      fields={[
+        { name: 'image', label: 'Image', type: 'file', accept: 'image/*' },
+      ]}
+    />
   )
 }
 

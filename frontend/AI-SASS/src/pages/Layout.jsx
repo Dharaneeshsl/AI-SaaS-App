@@ -3,12 +3,13 @@ import { Outlet, useNavigate } from 'react-router-dom'
 import { assets } from '../assets/assets'
 import { Menu, X } from 'lucide-react'
 import SideBar from '../components/SideBar'  
-import { SignIn, useUser } from '@clerk/clerk-react'
+import { AuthGate } from '../auth/AuthProvider'
+import { useAuth } from '../auth/authContext'
 
 const Layout = () => {
   const navigate = useNavigate()
   const [sidebar, setSidebar] = useState(false)
-  const { user } = useUser();
+  const { user } = useAuth()
 
   return user ? (
     <div className="flex flex-col h-screen">
@@ -31,9 +32,7 @@ const Layout = () => {
       </div>
     </div>
   ) : (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <SignIn />
-    </div>
+    <AuthGate />
   )
 }
 

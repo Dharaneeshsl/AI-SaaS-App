@@ -1,7 +1,11 @@
 import React from 'react'
 import { Calendar, Clock, Image as ImageIcon, Sparkles } from 'lucide-react'
+import { dummyCreationData, dummyPublishedCreationData } from '../assets/assets'
 
 const DashBoard = () => {
+  const totalCreations = dummyCreationData.length + dummyPublishedCreationData.length
+  const publishedCreations = dummyPublishedCreationData.length
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Header Section */}
@@ -21,7 +25,7 @@ const DashBoard = () => {
             </div>
             <div>
               <p className="text-sm text-gray-600">Total Creations</p>
-              <h3 className="text-xl font-semibold">0</h3>
+              <h3 className="text-xl font-semibold">{totalCreations}</h3>
             </div>
           </div>
         </div>
@@ -32,7 +36,7 @@ const DashBoard = () => {
             </div>
             <div>
               <p className="text-sm text-gray-600">This Month</p>
-              <h3 className="text-xl font-semibold">0</h3>
+              <h3 className="text-xl font-semibold">{publishedCreations}</h3>
             </div>
           </div>
         </div>
@@ -49,14 +53,13 @@ const DashBoard = () => {
         </div>
       </div>
 
-      {/* Empty State */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
         <div className="inline-flex p-3 bg-blue-50 rounded-full mb-4">
           <Sparkles className="w-6 h-6 text-blue-600" />
         </div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Create Your First AI Content</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Ready for your next creation</h2>
         <p className="text-gray-600 max-w-md mx-auto mb-6">
-          Get started by selecting any AI tool from the sidebar. Create amazing content with just a few clicks!
+          Select any AI tool from the sidebar to draft content, prepare image edits, or review a resume.
         </p>
       </div>
     </div>
