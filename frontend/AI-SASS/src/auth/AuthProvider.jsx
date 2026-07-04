@@ -6,6 +6,7 @@ import {
   useUser,
 } from '@clerk/clerk-react'
 import { AuthContext, useAuth } from './authContext'
+import { getEnv } from '../config/env'
 
 const missingEnvState = {
   isConfigured: false,
@@ -35,7 +36,7 @@ const ClerkAuthBridge = ({ children }) => {
 }
 
 export const AuthProvider = ({ children }) => {
-  const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+  const publishableKey = getEnv('VITE_CLERK_PUBLISHABLE_KEY')
 
   if (!publishableKey) {
     return (

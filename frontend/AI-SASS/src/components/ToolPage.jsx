@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Loader2, Sparkles } from 'lucide-react'
+import { submitToolRequest } from '../lib/api'
 
 const sampleOutputs = {
   article: (topic, tone, length) =>
@@ -39,11 +40,14 @@ const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Gener
     setValues((current) => ({ ...current, [name]: value }))
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     setLoading(true)
 
-    window.setTimeout(() => {
+    try {
+      const generated = await submitToolRequest(outputType, values)
+      setOutput(generated)
+    } catch {
       const generator = sampleOutputs[outputType]
       const generated =
         outputType === 'article'
@@ -59,8 +63,9 @@ const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Gener
                   : generator(values.image?.name)
 
       setOutput(generated)
+    } finally {
       setLoading(false)
-    }, 450)
+    }
   }
 
   return (
