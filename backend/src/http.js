@@ -21,7 +21,7 @@ export const corsHeaders = () => ({
   ...jsonHeaders,
   'access-control-allow-origin': config.frontendOrigin === '*' ? '*' : config.frontendOrigin,
   'access-control-allow-methods': 'GET,POST,OPTIONS',
-  'access-control-allow-headers': 'content-type,authorization',
+  'access-control-allow-headers': 'content-type,authorization,x-user-id',
   'access-control-max-age': '86400',
 })
 

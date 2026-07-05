@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { Loader2, Sparkles } from 'lucide-react'
-import { submitToolRequest } from '../lib/api'
+import { Check, Loader2, Share2, Sparkles } from 'lucide-react'
+import { publishCreation, submitToolRequest } from '../lib/api'
+import { useAuth } from '../auth/authContext'
 
 const sampleOutputs = {
   article: (topic, tone, length) =>
@@ -32,9 +33,13 @@ const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Gener
     [fields],
   )
 
+  const { user } = useAuth()
   const [values, setValues] = useState(initialValues)
   const [loading, setLoading] = useState(false)
   const [output, setOutput] = useState('')
+  const [creationId, setCreationId] = useState(null)
+  const [published, setPublished] = useState(false)
+  const [publishing, setPublishing] = useState(false)
 
   const updateValue = (name, value) => {
     setValues((current) => ({ ...current, [name]: value }))
@@ -43,10 +48,13 @@ const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Gener
   const handleSubmit = async (event) => {
     event.preventDefault()
     setLoading(true)
+    setCreationId(null)
+    setPublished(false)
 
     try {
-      const generated = await submitToolRequest(outputType, values)
+      const { output: generated, id } = await submitToolRequest(outputType, values, user?.id)
       setOutput(generated)
+      setCreationId(id || null)
     } catch {
       const generator = sampleOutputs[outputType]
       const generated =
@@ -65,6 +73,22 @@ const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Gener
       setOutput(generated)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handlePublish = async () => {
+    if (!creationId) {
+      return
+    }
+
+    setPublishing(true)
+    try {
+      await publishCreation(creationId, user?.id, true)
+      setPublished(true)
+    } catch {
+      // Publishing is a best-effort convenience; keep the output visible on failure.
+    } finally {
+      setPublishing(false)
     }
   }
 
@@ -136,7 +160,29 @@ const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Gener
             <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">Preview</span>
           </div>
           {output ? (
-            <pre className="whitespace-pre-wrap text-sm leading-6 text-gray-700">{output}</pre>
+            <>
+              <pre className="whitespace-pre-wrap text-sm leading-6 text-gray-700">{output}</pre>
+              {creationId && user && (
+                <div className="mt-5 border-t border-gray-100 pt-4">
+                  {published ? (
+                    <span className="inline-flex items-center gap-2 text-sm font-medium text-green-600">
+                      <Check className="h-4 w-4" />
+                      Published to the community
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handlePublish}
+                      disabled={publishing}
+                      className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+                      Publish to community
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
           ) : (
             <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-gray-200 text-center text-sm text-gray-500">
               Your generated result will appear here.
