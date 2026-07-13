@@ -18,10 +18,17 @@ const sampleOutputs = {
   resume: (role, summary) =>
     `Resume review for ${role || 'target role'}\n\nScore: 82/100\n\nWhat works:\n- Clear professional positioning\n- Good evidence of ownership and impact\n\nImprove next:\n- Add measurable outcomes to the top three bullets\n- Mirror 5-7 keywords from the job description\n- Shorten older experience so the latest role carries more weight\n\nSummary note: ${summary || 'Paste resume text to receive a sharper review.'}`,
   background: (fileName) =>
-    `${fileName || 'Image'} is queued for background removal. Connect the production media API to process and return a transparent PNG.`,
+    `Background removal preview ready for ${fileName || 'Image'}. Re-run once the backend is online to get the visual cutout.`,
   object: (fileName, objectName) =>
-    `${objectName || 'Selected object'} will be removed from ${fileName || 'the uploaded image'} after the production image-editing API is connected.`,
+    `Object removal preview ready: "${objectName || 'Selected object'}" from ${fileName || 'the uploaded image'}. Re-run once the backend is online for the visual result.`,
 }
+
+const isImageOutput = (value) =>
+  typeof value === 'string' &&
+  (value.startsWith('data:image') ||
+    value.startsWith('http://') ||
+    value.startsWith('https://') ||
+    /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(value))
 
 const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Generate' }) => {
   const initialValues = useMemo(
@@ -161,7 +168,13 @@ const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Gener
           </div>
           {output ? (
             <>
-              <pre className="whitespace-pre-wrap text-sm leading-6 text-gray-700">{output}</pre>
+              {isImageOutput(output) ? (
+                <div className="overflow-hidden rounded-lg border border-gray-100 bg-gray-50">
+                  <img src={output} alt="Generated result" className="mx-auto max-h-[480px] w-full object-contain" />
+                </div>
+              ) : (
+                <pre className="whitespace-pre-wrap text-sm leading-6 text-gray-700">{output}</pre>
+              )}
               {creationId && user && (
                 <div className="mt-5 border-t border-gray-100 pt-4">
                   {published ? (

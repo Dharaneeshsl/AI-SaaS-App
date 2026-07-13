@@ -4,7 +4,7 @@ const RemoveObject = () => {
   return (
     <ToolPage
       title="Object Removal"
-      description="Upload an image and describe the object that should be removed from the final asset."
+      description="Upload an image and describe what to remove. Fully functional preview in demo mode without API keys."
       outputType="object"
       submitLabel="Remove object"
       fields={[

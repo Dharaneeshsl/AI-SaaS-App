@@ -29,6 +29,47 @@ const srcDir = path.resolve('src')
 const distDir = path.resolve('dist')
 const assetsDir = path.join(distDir, 'assets')
 
+const loadDotEnv = (filePath) => {
+  try {
+    const content = require('node:fs').readFileSync(filePath, 'utf8')
+    const env = {}
+
+    for (const rawLine of content.split(/\r?\n/)) {
+      const line = rawLine.trim()
+      if (!line || line.startsWith('#')) continue
+      const eq = line.indexOf('=')
+      if (eq <= 0) continue
+      const key = line.slice(0, eq).trim()
+      let value = line.slice(eq + 1).trim()
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1)
+      }
+      if (key) env[key] = value
+    }
+
+    return env
+  } catch {
+    return {}
+  }
+}
+
+const readFrontendEnv = () => {
+  const fromFile = {
+    ...loadDotEnv(path.resolve('.env.example')),
+    ...loadDotEnv(path.resolve('.env')),
+  }
+
+  return {
+    VITE_API_BASE_URL:
+      process.env.VITE_API_BASE_URL || fromFile.VITE_API_BASE_URL || 'http://127.0.0.1:8787',
+    VITE_CLERK_PUBLISHABLE_KEY:
+      process.env.VITE_CLERK_PUBLISHABLE_KEY || fromFile.VITE_CLERK_PUBLISHABLE_KEY || '',
+  }
+}
+
 const readSourceFiles = async (dir) => {
   const entries = await fs.readdir(dir, { withFileTypes: true })
   const files = await Promise.all(
@@ -98,7 +139,28 @@ const cssPlugin = () => ({
   },
 })
 
+// React / react-router / Clerk expect process.env.NODE_ENV in Node. Browsers do
+// not have `process`, so without this the app white-screens on load.
+const envPlugin = () => ({
+  name: 'env-plugin',
+  transform(code, id) {
+    if (!code.includes('process.env')) {
+      return null
+    }
+
+    return {
+      code: code
+        .replace(/process\.env\.NODE_ENV/g, JSON.stringify('production'))
+        .replace(/process\.env\.\[/g, '({}).[')
+        .replace(/process\.env/g, '({})'),
+      map: null,
+    }
+  },
+})
+
 const buildApp = async () => {
+  process.env.NODE_ENV = 'production'
+
   const [{ rollup }, { nodeResolve }, commonjs, { babel }, terser, tailwindcss] = await Promise.all([
     import('rollup'),
     import('@rollup/plugin-node-resolve'),
@@ -114,13 +176,17 @@ const buildApp = async () => {
   const bundle = await rollup({
     input: path.resolve('src/main.jsx'),
     plugins: [
+      envPlugin(),
       cssPlugin(),
       assetPlugin(),
       nodeResolve({
         browser: true,
+        exportConditions: ['production', 'browser', 'module', 'import', 'default'],
         extensions: ['.mjs', '.js', '.jsx', '.json'],
       }),
-      commonjs.default(),
+      commonjs.default({
+        transformMixedEsModules: true,
+      }),
       babel({
         babelHelpers: 'bundled',
         extensions: ['.js', '.jsx'],
@@ -128,6 +194,13 @@ const buildApp = async () => {
         presets: [['@babel/preset-react', { runtime: 'automatic' }]],
       }),
     ],
+    onwarn(warning, warn) {
+      // React Router / SWR ship "use client" directives; safe to ignore in Rollup.
+      if (warning.code === 'MODULE_LEVEL_DIRECTIVE') {
+        return
+      }
+      warn(warning)
+    },
   })
 
   await bundle.write({
@@ -158,15 +231,21 @@ const buildApp = async () => {
   await fs.writeFile(path.join(assetsDir, 'styles.css'), css)
   await fs.copyFile(path.resolve('src/assets/favicon.svg'), path.join(assetsDir, 'favicon.svg'))
 
+  const frontendEnv = readFrontendEnv()
+  const envBootstrap = `<script>window.__AI_SASS_ENV__=${JSON.stringify(frontendEnv)};</script>`
+
   const html = await fs.readFile(path.resolve('index.html'), 'utf8')
   const productionHtml = html
     .replace('/src/assets/favicon.svg', './assets/favicon.svg')
     .replace(
       '<script type="module" src="/src/main.jsx"></script>',
-      '<link rel="stylesheet" href="./assets/styles.css" />\n    <script type="module" src="./assets/main.js"></script>',
+      `<link rel="stylesheet" href="./assets/styles.css" />\n    ${envBootstrap}\n    <script type="module" src="./assets/main.js"></script>`,
     )
 
   await fs.writeFile(path.join(distDir, 'index.html'), productionHtml)
+  console.log(
+    `Frontend build complete. API=${frontendEnv.VITE_API_BASE_URL} Clerk=${frontendEnv.VITE_CLERK_PUBLISHABLE_KEY ? 'configured' : 'demo mode'}`,
+  )
 }
 
 buildApp()

@@ -12,13 +12,22 @@ const SideBar = ({ sidebar, setSidebar }) => {
             <div className='w-full'>
                 {user && (
                     <div className='flex flex-col items-center mt-6 mb-8'>
-                        <img 
-                            src={user.imageUrl} 
-                            alt={user.fullName || 'User'} 
-                            className='w-12 h-12 rounded-full cursor-pointer hover:opacity-90 transition-opacity'
-                            onClick={() => openUserProfile()}
-                        />
-                        <h1 className='mt-2 font-medium text-gray-800'>{user.fullName}</h1>
+                        {user.imageUrl ? (
+                            <img
+                                src={user.imageUrl}
+                                alt={user.fullName || 'User'}
+                                className='w-12 h-12 rounded-full cursor-pointer hover:opacity-90 transition-opacity object-cover'
+                                onClick={() => openUserProfile()}
+                            />
+                        ) : (
+                            <div
+                                className='w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold cursor-pointer'
+                                onClick={() => openUserProfile()}
+                            >
+                                {(user.firstName || user.fullName || 'G').slice(0, 1).toUpperCase()}
+                            </div>
+                        )}
+                        <h1 className='mt-2 font-medium text-gray-800'>{user.fullName || 'Guest'}</h1>
                     </div>
                 )}
                 

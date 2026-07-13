@@ -1,3 +1,4 @@
+import './loadEnv.js'
 import http from 'node:http'
 import { config } from './config.js'
 import { cleanupRateLimits, isRateLimited } from './rateLimit.js'

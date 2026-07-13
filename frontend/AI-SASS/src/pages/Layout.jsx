@@ -9,9 +9,17 @@ import { useAuth } from '../auth/authContext'
 const Layout = () => {
   const navigate = useNavigate()
   const [sidebar, setSidebar] = useState(false)
-  const { user } = useAuth()
+  const { user, isConfigured, isDemoMode } = useAuth()
 
-  return user ? (
+  // Allow full app access in demo mode (no Clerk key). When Clerk is configured,
+  // require a signed-in user for the protected /ai workspace.
+  const canAccessWorkspace = Boolean(user) || !isConfigured || isDemoMode
+
+  if (!canAccessWorkspace) {
+    return <AuthGate />
+  }
+
+  return (
     <div className="flex flex-col h-screen">
       {/* Navbar */}
       <nav className="w-full px-8 h-14 flex items-center justify-between border-b border-gray-200 bg-white">
@@ -31,8 +39,6 @@ const Layout = () => {
         </main>
       </div>
     </div>
-  ) : (
-    <AuthGate />
   )
 }
 

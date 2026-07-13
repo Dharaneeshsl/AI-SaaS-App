@@ -104,6 +104,44 @@ const run = async () => {
   })
   assert.equal(anonLike.response.status, 401)
 
+  // Media tools return real SVG data-URL previews in demo mode.
+  const background = await requestJson(`${baseUrl}/api/media/remove-background`, {
+    method: 'POST',
+    headers: userHeaders,
+    body: JSON.stringify({ fileName: 'product.png' }),
+  })
+  assert.equal(background.response.status, 200)
+  assert.equal(background.body.ok, true)
+  assert.match(background.body.output, /^data:image\/svg\+xml/)
+  assert.ok(background.body.id)
+
+  const objectRemoval = await requestJson(`${baseUrl}/api/media/remove-object`, {
+    method: 'POST',
+    headers: userHeaders,
+    body: JSON.stringify({ fileName: 'desk.jpg', objectName: 'Coffee cup' }),
+  })
+  assert.equal(objectRemoval.response.status, 200)
+  assert.equal(objectRemoval.body.ok, true)
+  assert.match(objectRemoval.body.output, /^data:image\/svg\+xml/)
+
+  const resume = await requestJson(`${baseUrl}/api/ai/resume`, {
+    method: 'POST',
+    headers: userHeaders,
+    body: JSON.stringify({ role: 'Engineer', resume: 'Built products with React and Node.' }),
+  })
+  assert.equal(resume.response.status, 200)
+  assert.equal(resume.body.ok, true)
+  assert.match(resume.body.output, /Engineer/)
+
+  const image = await requestJson(`${baseUrl}/api/ai/image`, {
+    method: 'POST',
+    headers: userHeaders,
+    body: JSON.stringify({ prompt: 'SaaS dashboard', style: 'Minimal' }),
+  })
+  assert.equal(image.response.status, 200)
+  assert.equal(image.body.ok, true)
+  assert.ok(image.body.output.length > 20)
+
   const missing = await requestJson(`${baseUrl}/api/missing`)
   assert.equal(missing.response.status, 404)
   assert.equal(missing.body.ok, false)

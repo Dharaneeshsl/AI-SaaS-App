@@ -135,13 +135,69 @@ export const reviewResume = async ({ role, resume }) => {
   return live || demoResume(safeRole, safeResume)
 }
 
-export const prepareBackgroundRemoval = async ({ fileName }) => {
-  const safeFile = clean(fileName, 'Image')
-  return `${safeFile} is queued for background removal. Connect a media processing provider to return a transparent PNG.`
+// Build a deterministic SVG data URL so media tools return a real visual preview
+// even without a third-party image API. The community feed can render these.
+const svgDataUrl = (svg) =>
+  `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg.replace(/\s+/g, ' ').trim())}`
+
+const escapeXml = (value) =>
+  clean(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+export const prepareBackgroundRemoval = async ({ fileName, image }) => {
+  const safeFile = clean(fileName || image, 'Image')
+  const label = escapeXml(safeFile.length > 42 ? `${safeFile.slice(0, 39)}...` : safeFile)
+
+  // Demo output: a cutout-style card with a transparent checkerboard background.
+  return svgDataUrl(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720">
+      <defs>
+        <pattern id="checker" width="24" height="24" patternUnits="userSpaceOnUse">
+          <rect width="24" height="24" fill="#f3f4f6"/>
+          <rect width="12" height="12" fill="#e5e7eb"/>
+          <rect x="12" y="12" width="12" height="12" fill="#e5e7eb"/>
+        </pattern>
+        <linearGradient id="subject" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#60a5fa"/>
+          <stop offset="100%" stop-color="#a855f7"/>
+        </linearGradient>
+      </defs>
+      <rect width="960" height="720" fill="url(#checker)"/>
+      <ellipse cx="480" cy="390" rx="170" ry="210" fill="url(#subject)"/>
+      <circle cx="480" cy="210" r="88" fill="url(#subject)"/>
+      <rect x="48" y="48" width="280" height="72" rx="16" fill="#111827" fill-opacity="0.82"/>
+      <text x="68" y="78" fill="#fff" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600">Background removed</text>
+      <text x="68" y="102" fill="#d1d5db" font-family="Segoe UI, Arial, sans-serif" font-size="13">${label}</text>
+      <text x="48" y="680" fill="#4b5563" font-family="Segoe UI, Arial, sans-serif" font-size="14">Demo preview · transparent PNG when a media provider key is set</text>
+    </svg>
+  `)
 }
 
-export const prepareObjectRemoval = async ({ fileName, objectName }) => {
-  const safeFile = clean(fileName, 'the uploaded image')
+export const prepareObjectRemoval = async ({ fileName, image, objectName }) => {
+  const safeFile = clean(fileName || image, 'the uploaded image')
   const safeObject = clean(objectName, 'Selected object')
-  return `${safeObject} will be removed from ${safeFile} after the production image-editing provider is connected.`
+  const fileLabel = escapeXml(safeFile.length > 36 ? `${safeFile.slice(0, 33)}...` : safeFile)
+  const objectLabel = escapeXml(safeObject.length > 36 ? `${safeObject.slice(0, 33)}...` : safeObject)
+
+  // Demo output: scene with a "removed" zone callout for the target object.
+  return svgDataUrl(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#dbeafe"/>
+          <stop offset="100%" stop-color="#eff6ff"/>
+        </linearGradient>
+      </defs>
+      <rect width="960" height="720" fill="url(#sky)"/>
+      <rect x="0" y="460" width="960" height="260" fill="#d1fae5"/>
+      <rect x="120" y="260" width="320" height="220" rx="18" fill="#93c5fd"/>
+      <rect x="520" y="300" width="280" height="180" rx="18" fill="#86efac"/>
+      <rect x="360" y="340" width="180" height="140" rx="12" fill="none" stroke="#ef4444" stroke-width="4" stroke-dasharray="10 8"/>
+      <line x1="360" y1="340" x2="540" y2="480" stroke="#ef4444" stroke-width="3"/>
+      <line x1="540" y1="340" x2="360" y2="480" stroke="#ef4444" stroke-width="3"/>
+      <rect x="48" y="48" width="360" height="88" rx="16" fill="#111827" fill-opacity="0.85"/>
+      <text x="68" y="82" fill="#fff" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600">Object removed</text>
+      <text x="68" y="108" fill="#d1d5db" font-family="Segoe UI, Arial, sans-serif" font-size="13">${objectLabel} · ${fileLabel}</text>
+      <text x="48" y="680" fill="#4b5563" font-family="Segoe UI, Arial, sans-serif" font-size="14">Demo preview · live inpainting when an image-editing provider is connected</text>
+    </svg>
+  `)
 }

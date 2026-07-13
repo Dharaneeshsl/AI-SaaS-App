@@ -8,9 +8,18 @@ import {
 import { AuthContext, useAuth } from './authContext'
 import { getEnv } from '../config/env'
 
+// Used when Clerk is not configured so the full product still works in demo mode.
+const demoGuestUser = {
+  id: 'demo-guest',
+  firstName: 'Guest',
+  fullName: 'Demo Guest',
+  imageUrl: '',
+}
+
 const missingEnvState = {
   isConfigured: false,
-  user: null,
+  isDemoMode: true,
+  user: demoGuestUser,
   openSignIn: () => {},
   signOut: () => {},
   openUserProfile: () => {},
@@ -24,6 +33,7 @@ const ClerkAuthBridge = ({ children }) => {
     <AuthContext.Provider
       value={{
         isConfigured: true,
+        isDemoMode: false,
         user,
         openSignIn,
         signOut,

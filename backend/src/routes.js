@@ -82,6 +82,8 @@ export const routeRequest = async (req, res, pathname) => {
         anthropicConfigured: config.hasAnthropicKey,
         aiMode: mode(),
         clerkConfigured: config.hasClerkSecret,
+        openAiConfigured: config.hasOpenAiKey,
+        mediaMode: 'demo-preview',
       },
     })
   }
