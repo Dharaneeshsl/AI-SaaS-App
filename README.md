@@ -46,6 +46,9 @@ Every generation is persisted through a JSON file store (`backend/data/creations
 
 ```text
 AI-SaaS-App/
+  package.json             # root one-command scripts (install:all, start, verify)
+  scripts/
+    start.cjs              # launches backend + frontend together
   backend/
     src/
       server.js
@@ -70,10 +73,11 @@ AI-SaaS-App/
       src/
         auth/
         components/
-        config/
+        config/            # runtime API base resolution (localhost vs deployed)
         lib/
         pages/
       scripts/
+        preview.cjs        # static server + same-origin /api reverse proxy
       package.json
       .env.example
 ```
@@ -117,35 +121,48 @@ OPENAI_API_KEY=
 
 ## Install
 
-```bash
-cd frontend/AI-SASS
-npm install
+One command from the repo root:
 
-cd ../../backend
-npm install
+```bash
+npm run install:all
 ```
 
-## Run Locally
+(Or install each package manually: `cd frontend/AI-SASS && npm install`, then `cd ../../backend && npm install`.)
 
-Start the backend:
+## Run Locally (one command)
 
 ```bash
-cd backend
 npm start
 ```
 
-Build and preview the frontend:
-
-```bash
-cd frontend/AI-SASS
-npm run build
-npm run preview
-```
+This starts the backend API on `:8787` and the frontend on `:4173` together (building the frontend first if needed), and shuts both down on Ctrl+C.
 
 Default URLs:
 
 - Frontend: `http://127.0.0.1:4173`
 - Backend health: `http://127.0.0.1:8787/api/health`
+
+Or run each service separately:
+
+```bash
+cd backend && npm start
+cd frontend/AI-SASS && npm run build && npm run preview
+```
+
+## Verify everything
+
+```bash
+npm run verify
+```
+
+Runs backend lint, backend API tests, frontend lint, and the frontend production build in one shot.
+
+## Deployment / reverse proxy
+
+The frontend resolves its API base at runtime:
+
+- Served from **localhost** → uses `VITE_API_BASE_URL` directly (default `http://127.0.0.1:8787`, CORS handled by the backend).
+- Served from **any non-localhost host** (preview URL, reverse proxy, production domain) → automatically switches to **same-origin relative** `/api` requests, so a loopback URL baked into the build can never point at the visitor's own machine. The preview server (`npm run preview`) already proxies `/api/*` to `http://127.0.0.1:8787` (override with `API_PROXY_ORIGIN`). In production, point your reverse proxy's `/api` route at the backend, or set `VITE_API_BASE_URL` to your API's full public domain.
 
 ## Scripts
 
@@ -211,6 +228,7 @@ The project was verified with:
 - Backend lint passing
 - Backend API tests passing (including media, resume, image, creations, likes)
 - Full smoke path for frontend, backend health, and backend AI/media routes
+- Live end-to-end run: both servers up, all 6 tools, publish/like/community, dashboard scoping, SPA deep links, and same-origin `/api` proxying all verified
 
 ## License
 
