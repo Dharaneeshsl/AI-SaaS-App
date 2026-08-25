@@ -7,6 +7,11 @@ const port = Number(process.env.PORT || 4173)
 const host = process.env.HOST || '127.0.0.1'
 const distDir = path.resolve(__dirname, '..', 'dist')
 
+// Reverse proxy for same-origin API requests. The production bundle calls the
+// backend with relative URLs when served from a non-local host, so this server
+// (or any production reverse proxy) forwards /api/* to the backend.
+const backendOrigin = process.env.API_PROXY_ORIGIN || 'http://127.0.0.1:8787'
+
 const mimeTypes = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -30,6 +35,27 @@ const send = (res, status, body, headers = {}) => {
   res.end(body)
 }
 
+const proxyApiRequest = (req, res) => {
+  const target = new URL(req.url, backendOrigin)
+  const headers = { ...req.headers, host: target.host }
+
+  const proxyRequest = http.request(target, { method: req.method, headers }, (proxyResponse) => {
+    res.writeHead(proxyResponse.statusCode || 502, proxyResponse.headers)
+    proxyResponse.pipe(res)
+  })
+
+  proxyRequest.on('error', (error) => {
+    send(
+      res,
+      502,
+      JSON.stringify({ ok: false, error: `Backend unavailable at ${backendOrigin}: ${error.code || error.message}` }),
+      { 'content-type': 'application/json; charset=utf-8' },
+    )
+  })
+
+  req.pipe(proxyRequest)
+}
+
 const safeJoin = (root, requestPath) => {
   const decoded = decodeURIComponent(requestPath.split('?')[0])
   const normalized = path.normalize(decoded).replace(/^([/\\])+/, '')
@@ -42,6 +68,12 @@ const safeJoin = (root, requestPath) => {
 
 const server = http.createServer((req, res) => {
   const urlPath = req.url || '/'
+
+  // Same-origin API calls are forwarded to the backend service.
+  if (urlPath === '/api' || urlPath.startsWith('/api/')) {
+    return proxyApiRequest(req, res)
+  }
+
   let filePath = safeJoin(distDir, urlPath === '/' ? '/index.html' : urlPath)
 
   if (!filePath) {
@@ -75,5 +107,6 @@ if (!fs.existsSync(path.join(distDir, 'index.html'))) {
 
 server.listen(port, host, () => {
   console.log(`Frontend preview: http://${host}:${port}/`)
+  console.log(`API proxy: ${backendOrigin}`)
   console.log(`Serving ${pathToFileURL(distDir).href}`)
 })
