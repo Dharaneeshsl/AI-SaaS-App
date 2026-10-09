@@ -37,6 +37,13 @@ const run = async () => {
   assert.ok(health.body.integrations)
   assert.ok('anthropicConfigured' in health.body.integrations)
 
+  const unauthenticated = await requestJson(`${baseUrl}/api/ai/title`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ keyword: 'private data' }),
+  })
+  assert.equal(unauthenticated.response.status, 401)
+
   const userHeaders = {
     'content-type': 'application/json',
     'x-user-id': 'test-user-1',
@@ -123,6 +130,20 @@ const run = async () => {
   assert.equal(objectRemoval.response.status, 200)
   assert.equal(objectRemoval.body.ok, true)
   assert.match(objectRemoval.body.output, /^data:image\/svg\+xml/)
+
+  const missingMedia = await requestJson(`${baseUrl}/api/media/remove-background`, {
+    method: 'POST',
+    headers: userHeaders,
+    body: JSON.stringify({}),
+  })
+  assert.equal(missingMedia.response.status, 400)
+
+  const invalidArticle = await requestJson(`${baseUrl}/api/ai/article`, {
+    method: 'POST',
+    headers: userHeaders,
+    body: JSON.stringify({ topic: 42 }),
+  })
+  assert.equal(invalidArticle.response.status, 400)
 
   const resume = await requestJson(`${baseUrl}/api/ai/resume`, {
     method: 'POST',

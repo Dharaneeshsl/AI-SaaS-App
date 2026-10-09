@@ -1,10 +1,10 @@
 # AI SaaS App
 
-A full-stack AI SaaS product with a production-ready React frontend and a Node.js backend API. Authentication-ready UI, live AI content tools powered by Claude, media tool previews, persisted creations, dashboard, community feed, local production builds, and verification scripts.
+A full-stack AI SaaS product with a React frontend and Node.js backend API. It includes Clerk-authenticated API requests, live AI content tools powered by Claude, media tool previews, persisted creations, dashboard, community feed, local production builds, and verification scripts.
 
 ## Status
 
-**All product features are complete.** The only thing left for you is optional environment configuration (API keys). The app runs fully in deterministic **demo mode** with zero keys.
+**The checked demo flow is complete.** Live provider credentials and deployment infrastructure remain environment-specific. The app runs in deterministic **demo mode** locally with zero provider keys; production deployments must configure Clerk and a durable database before accepting real user data.
 
 | Area | Status |
 |------|--------|
@@ -13,10 +13,10 @@ A full-stack AI SaaS product with a production-ready React frontend and a Node.j
 | AI Article / Titles / Image brief / Resume | Complete (live Claude when key set) |
 | Background & object removal | Complete (visual demo previews) |
 | Creations store, publish, likes | Complete |
-| Auth UI (Clerk-ready) + guest demo mode | Complete |
+| Auth UI + verified Clerk API tokens + guest demo mode | Complete |
 | Backend health, CORS, rate limits, security headers | Complete |
 | Lint, tests, production build | Complete |
-| Environment keys | **You fill these in when ready** |
+| Environment keys / deployment services | **You fill these in when ready** |
 
 ## Features
 
@@ -28,7 +28,7 @@ A full-stack AI SaaS product with a production-ready React frontend and a Node.j
 - Object Removal (visual SVG demo preview; provider-ready)
 - Persisted creations with a real per-user dashboard
 - Community feed with publish and like actions
-- Clerk-ready authentication and billing UI (guest demo mode without keys)
+- Clerk authentication and billing UI (guest demo mode without keys)
 - Backend health check and tool APIs
 - CORS, security headers, request body limits, and rate limiting
 - Deterministic demo mode when no provider key is configured — switches to live Claude generation when `ANTHROPIC_API_KEY` is set
@@ -200,7 +200,7 @@ POST /api/creations/:id/publish     # publish/unpublish your creation
 POST /api/creations/:id/like        # toggle a like
 ```
 
-User identity is read from an `Authorization: Bearer <clerk-jwt>` header or an `x-user-id` header. The frontend sends the Clerk user id automatically when signed in (or `demo-guest` in demo mode). For hardened production, verify the Clerk JWT signature in `backend/src/auth.js` (e.g. with `@clerk/backend`).
+User identity is read from a verified `Authorization: Bearer <clerk-jwt>` header in production. The `x-user-id` header is accepted only when `ALLOW_DEMO_AUTH=true` (enabled automatically outside production) and is intended for local demo/test use only. The frontend obtains a Clerk session token automatically when Clerk is configured.
 
 Example request:
 
@@ -212,12 +212,11 @@ curl -X POST http://127.0.0.1:8787/api/ai/article \
 
 ## Production Notes
 
-- Configure `VITE_CLERK_PUBLISHABLE_KEY` for live Clerk authentication and billing UI.
+- Configure both `VITE_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` for verified Clerk authentication and billing UI. Keep `ALLOW_DEMO_AUTH=false` in production.
 - Configure `ANTHROPIC_API_KEY` (and optionally `AI_MODEL`) to enable live Claude generation; without it the AI tools run in deterministic demo mode.
-- Keep `FRONTEND_ORIGIN` locked to your deployed frontend domain in production.
+- Keep `FRONTEND_ORIGIN` locked to your deployed frontend domain in production. Set `TRUST_PROXY=true` only when every request reaches the backend through your own trusted reverse proxy.
 - Media tools return visual demo previews out of the box; plug in an image-editing provider later for photoreal cutouts.
-- Persistence uses a JSON file store (`backend/src/services/store.js`). Swap it for a managed database before running multiple backend instances.
-- Harden `backend/src/auth.js` to verify the Clerk JWT signature before trusting user identity in production.
+- Persistence uses a JSON file store (`backend/src/services/store.js`) for the checked single-instance demo. Swap it for a managed database with retention, deletion, and access policies before running multiple backend instances or storing sensitive production data.
 
 ## Verification Status
 
@@ -226,10 +225,10 @@ The project was verified with:
 - Frontend lint passing
 - Frontend production build passing
 - Backend lint passing
-- Backend API tests passing (including media, resume, image, creations, likes)
+- Backend API tests passing (including auth rejection, validation, media, resume, image, creations, likes)
 - Full smoke path for frontend, backend health, and backend AI/media routes
 - Live end-to-end run: both servers up, all 6 tools, publish/like/community, dashboard scoping, SPA deep links, and same-origin `/api` proxying all verified
 
 ## License
 
-Private project. Add a license before publishing publicly if needed.
+Private project. Add a license before publishing publicly if needed. “Launch ready” still requires your production Clerk, AI/media provider, database, secrets, domain, monitoring, backups, and deployment review.

@@ -1,43 +1,58 @@
-// Resolve a stable user identifier from an incoming request so creations can be
-// scoped per user. Two sources are supported:
-//
-//   1. A Clerk session JWT in the `Authorization: Bearer <token>` header. The
-//      `sub` claim is the Clerk user id.
-//   2. An `x-user-id` header (the Clerk user id sent directly by the frontend).
-//
-// NOTE: When CLERK_SECRET_KEY is configured you should verify the JWT signature
-// against Clerk's JWKS before trusting it. This helper decodes the claim without
-// verifying the signature, which is sufficient for the demo/starter flow but
-// should be hardened (e.g. with `@clerk/backend`) before handling sensitive data.
+import { config } from './config.js'
 
-const decodeJwtSub = (token) => {
-  const parts = token.split('.')
+let clerkModulePromise = null
 
-  if (parts.length !== 3) {
+const loadClerk = async () => {
+  if (!config.hasClerkSecret) {
     return null
   }
 
-  try {
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'))
-    return typeof payload.sub === 'string' ? payload.sub : null
-  } catch {
-    return null
+  if (!clerkModulePromise) {
+    clerkModulePromise = import('@clerk/backend').catch((error) => {
+      console.error('Clerk backend SDK is unavailable:', error.message)
+      return null
+    })
   }
+
+  return clerkModulePromise
 }
 
-export const getUserId = (req) => {
-  const authHeader = req.headers['authorization']
+const getBearerToken = (req) => {
+  const header = req.headers.authorization
+  if (typeof header !== 'string' || !header.toLowerCase().startsWith('bearer ')) {
+    return null
+  }
 
-  if (typeof authHeader === 'string' && authHeader.toLowerCase().startsWith('bearer ')) {
-    const sub = decodeJwtSub(authHeader.slice(7).trim())
-    if (sub) {
-      return sub
+  return header.slice(7).trim() || null
+}
+
+/**
+ * Authenticate a request. Demo identity headers are deliberately accepted only
+ * when demo auth is enabled (development/test by default). Production requires
+ * a Clerk secret and a verified Clerk session token.
+ */
+export const getUserId = async (req) => {
+  const token = getBearerToken(req)
+
+  if (token) {
+    const clerk = await loadClerk()
+    if (!clerk?.verifyToken) {
+      return null
+    }
+
+    try {
+      const claims = await clerk.verifyToken(token, { secretKey: config.clerkSecretKey })
+      return typeof claims.sub === 'string' && claims.sub ? claims.sub : null
+    } catch {
+      return null
     }
   }
 
-  const headerId = req.headers['x-user-id']
-  if (typeof headerId === 'string' && headerId.trim()) {
-    return headerId.trim()
+  if (config.allowDemoAuth) {
+    const headerId = req.headers['x-user-id']
+    if (typeof headerId === 'string' && /^[A-Za-z0-9_:@.-]{1,128}$/.test(headerId.trim())) {
+      return headerId.trim()
+    }
   }
 
   return null

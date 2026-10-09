@@ -8,8 +8,8 @@ const RemoveObject = () => {
       outputType="object"
       submitLabel="Remove object"
       fields={[
-        { name: 'image', label: 'Image', type: 'file', accept: 'image/*' },
-        { name: 'objectName', label: 'Object to remove', placeholder: 'Coffee cup on the desk' },
+        { name: 'image', label: 'Image', type: 'file', accept: 'image/*', required: true },
+        { name: 'objectName', label: 'Object to remove', placeholder: 'Coffee cup on the desk', required: true },
       ]}
     />
   )

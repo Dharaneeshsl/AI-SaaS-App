@@ -8,7 +8,7 @@ const RemoveBackground = () => {
       outputType="background"
       submitLabel="Remove background"
       fields={[
-        { name: 'image', label: 'Image', type: 'file', accept: 'image/*' },
+        { name: 'image', label: 'Image', type: 'file', accept: 'image/*', required: true },
       ]}
     />
   )

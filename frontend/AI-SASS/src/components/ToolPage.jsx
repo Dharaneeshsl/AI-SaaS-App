@@ -3,26 +3,6 @@ import { Check, Loader2, Share2, Sparkles } from 'lucide-react'
 import { publishCreation, submitToolRequest } from '../lib/api'
 import { useAuth } from '../auth/authContext'
 
-const sampleOutputs = {
-  article: (topic, tone, length) =>
-    `# ${topic || 'Your next article'}\n\nA strong ${tone.toLowerCase()} article opens with a clear promise, gives readers practical context, and closes with an action they can take immediately. For a ${length.toLowerCase()} piece, lead with the problem, explain why it matters now, and organize the answer into short sections that are easy to scan.\n\nKey angles to include:\n- The audience pain point\n- The change or opportunity driving urgency\n- Three practical takeaways\n- A concise closing recommendation`,
-  title: (keyword, category) =>
-    [
-      `${keyword || 'AI growth'}: A Practical Guide for ${category}`,
-      `How ${keyword || 'AI growth'} Is Changing ${category}`,
-      `The Founder’s Playbook for ${keyword || 'AI growth'}`,
-      `${keyword || 'AI growth'} Trends Worth Watching This Year`,
-    ].join('\n'),
-  image: (prompt, style) =>
-    `Image brief ready: ${prompt || 'A polished product visual'} in a ${style.toLowerCase()} style. Connect your image-generation API to turn this brief into a downloadable asset.`,
-  resume: (role, summary) =>
-    `Resume review for ${role || 'target role'}\n\nScore: 82/100\n\nWhat works:\n- Clear professional positioning\n- Good evidence of ownership and impact\n\nImprove next:\n- Add measurable outcomes to the top three bullets\n- Mirror 5-7 keywords from the job description\n- Shorten older experience so the latest role carries more weight\n\nSummary note: ${summary || 'Paste resume text to receive a sharper review.'}`,
-  background: (fileName) =>
-    `Background removal preview ready for ${fileName || 'Image'}. Re-run once the backend is online to get the visual cutout.`,
-  object: (fileName, objectName) =>
-    `Object removal preview ready: "${objectName || 'Selected object'}" from ${fileName || 'the uploaded image'}. Re-run once the backend is online for the visual result.`,
-}
-
 const isImageOutput = (value) =>
   typeof value === 'string' &&
   (value.startsWith('data:image') ||
@@ -40,13 +20,14 @@ const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Gener
     [fields],
   )
 
-  const { user } = useAuth()
+  const { user, getToken } = useAuth()
   const [values, setValues] = useState(initialValues)
   const [loading, setLoading] = useState(false)
   const [output, setOutput] = useState('')
   const [creationId, setCreationId] = useState(null)
   const [published, setPublished] = useState(false)
   const [publishing, setPublishing] = useState(false)
+  const [error, setError] = useState('')
 
   const updateValue = (name, value) => {
     setValues((current) => ({ ...current, [name]: value }))
@@ -57,27 +38,23 @@ const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Gener
     setLoading(true)
     setCreationId(null)
     setPublished(false)
+    setError('')
+    setOutput('')
+
+    const missingRequired = fields.find((field) => field.required && !values[field.name])
+    if (missingRequired) {
+      setError(`${missingRequired.label} is required.`)
+      setLoading(false)
+      return
+    }
 
     try {
-      const { output: generated, id } = await submitToolRequest(outputType, values, user?.id)
+      const token = await getToken()
+      const { output: generated, id } = await submitToolRequest(outputType, values, user?.id, token)
       setOutput(generated)
       setCreationId(id || null)
-    } catch {
-      const generator = sampleOutputs[outputType]
-      const generated =
-        outputType === 'article'
-          ? generator(values.topic, values.tone, values.length)
-          : outputType === 'title'
-            ? generator(values.keyword, values.category)
-            : outputType === 'image'
-              ? generator(values.prompt, values.style)
-              : outputType === 'resume'
-                ? generator(values.role, values.resume)
-                : outputType === 'object'
-                  ? generator(values.image?.name, values.objectName)
-                  : generator(values.image?.name)
-
-      setOutput(generated)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'The request failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -90,10 +67,11 @@ const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Gener
 
     setPublishing(true)
     try {
-      await publishCreation(creationId, user?.id, true)
+      const token = await getToken()
+      await publishCreation(creationId, user?.id, true, token)
       setPublished(true)
-    } catch {
-      // Publishing is a best-effort convenience; keep the output visible on failure.
+    } catch (publishError) {
+      setError(publishError instanceof Error ? publishError.message : 'Publishing failed. Please try again.')
     } finally {
       setPublishing(false)
     }
@@ -159,6 +137,7 @@ const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Gener
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {submitLabel}
           </button>
+          {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{error}</p>}
         </form>
 
         <section className="min-h-[360px] rounded-lg border border-gray-200 bg-white p-5 shadow-sm">

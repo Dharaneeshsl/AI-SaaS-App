@@ -2,6 +2,7 @@ import {
   ClerkProvider,
   PricingTable,
   SignIn,
+  useAuth as useClerkAuth,
   useClerk,
   useUser,
 } from '@clerk/clerk-react'
@@ -23,11 +24,13 @@ const missingEnvState = {
   openSignIn: () => {},
   signOut: () => {},
   openUserProfile: () => {},
+  getToken: async () => null,
 }
 
 const ClerkAuthBridge = ({ children }) => {
   const { user } = useUser()
   const { openSignIn, signOut, openUserProfile } = useClerk()
+  const { getToken } = useClerkAuth()
 
   return (
     <AuthContext.Provider
@@ -38,6 +41,7 @@ const ClerkAuthBridge = ({ children }) => {
         openSignIn,
         signOut,
         openUserProfile,
+        getToken,
       }}
     >
       {children}

@@ -17,14 +17,52 @@ import {
   toggleLike,
 } from './services/store.js'
 
-const mode = () => (config.hasAnthropicKey ? 'provider-live' : 'demo')
-
 const ok = (output, meta = {}) => ({
   ok: true,
   output,
-  mode: mode(),
   ...meta,
 })
+
+const invalid = (message) => {
+  const error = new Error(message)
+  error.status = 400
+  return error
+}
+
+const optionalText = (body, field, maxLength) => {
+  if (body[field] === undefined || body[field] === null || body[field] === '') {
+    return
+  }
+  if (typeof body[field] !== 'string') {
+    throw invalid(`${field} must be a string.`)
+  }
+  if (body[field].trim().length > maxLength) {
+    throw invalid(`${field} must be ${maxLength} characters or fewer.`)
+  }
+}
+
+const validateToolInput = (type, body) => {
+  const limits = {
+    article: { topic: 500, tone: 80, length: 40 },
+    'blog-title': { keyword: 300, category: 100 },
+    image: { prompt: 600, style: 100 },
+    resume: { role: 200, resume: 12_000 },
+    'background-removal': { fileName: 255, image: 255 },
+    'object-removal': { fileName: 255, image: 255, objectName: 300 },
+  }[type]
+
+  for (const [field, maxLength] of Object.entries(limits || {})) {
+    optionalText(body, field, maxLength)
+  }
+
+  if (type === 'background-removal' || type === 'object-removal') {
+    if (!body.fileName && !body.image) {
+      throw invalid('An image is required.')
+    }
+  }
+}
+
+const mode = (result) => result?.mode || (config.hasAnthropicKey ? 'provider-live' : 'demo')
 
 const requirePost = (req) => {
   if (req.method !== 'POST') {
@@ -58,8 +96,15 @@ const summarize = (type, body) => {
 const handleTool = async (req, res, { type, generator, publishByDefault = false }) => {
   requirePost(req)
   const body = await readJsonBody(req)
-  const userId = getUserId(req)
-  const output = await generator(body)
+  validateToolInput(type, body)
+  const userId = await getUserId(req)
+
+  if (!userId) {
+    return sendCorsJson(res, 401, { ok: false, error: 'Authentication is required.' })
+  }
+
+  const result = await generator(body)
+  const output = result.output
 
   const creation = await saveCreation({
     userId,
@@ -69,7 +114,7 @@ const handleTool = async (req, res, { type, generator, publishByDefault = false 
     publish: publishByDefault,
   })
 
-  return sendCorsJson(res, 200, ok(output, { id: creation.id }))
+  return sendCorsJson(res, 200, ok(output, { id: creation.id, mode: mode(result) }))
 }
 
 export const routeRequest = async (req, res, pathname) => {
@@ -80,7 +125,7 @@ export const routeRequest = async (req, res, pathname) => {
       env: config.nodeEnv,
       integrations: {
         anthropicConfigured: config.hasAnthropicKey,
-        aiMode: mode(),
+        aiMode: config.hasAnthropicKey ? 'provider-live' : 'demo',
         clerkConfigured: config.hasClerkSecret,
         openAiConfigured: config.hasOpenAiKey,
         mediaMode: 'demo-preview',
@@ -114,7 +159,10 @@ export const routeRequest = async (req, res, pathname) => {
 
   // Creations owned by the requesting user (dashboard feed).
   if (req.method === 'GET' && pathname === '/api/creations') {
-    const userId = getUserId(req)
+    const userId = await getUserId(req)
+    if (!userId) {
+      return sendCorsJson(res, 401, { ok: false, error: 'Authentication is required.' })
+    }
     const creations = await listUserCreations(userId)
     return sendCorsJson(res, 200, { ok: true, creations })
   }
@@ -129,7 +177,10 @@ export const routeRequest = async (req, res, pathname) => {
   const publishMatch = pathname.match(/^\/api\/creations\/([^/]+)\/publish$/)
   if (publishMatch) {
     requirePost(req)
-    const userId = getUserId(req)
+    const userId = await getUserId(req)
+    if (!userId) {
+      return sendCorsJson(res, 401, { ok: false, error: 'Authentication is required.' })
+    }
     const body = await readJsonBody(req)
     const record = await setPublished(publishMatch[1], userId, body.publish !== false)
 
@@ -144,7 +195,7 @@ export const routeRequest = async (req, res, pathname) => {
   const likeMatch = pathname.match(/^\/api\/creations\/([^/]+)\/like$/)
   if (likeMatch) {
     requirePost(req)
-    const userId = getUserId(req)
+    const userId = await getUserId(req)
 
     if (!userId) {
       return sendCorsJson(res, 401, { ok: false, error: 'Sign in to like creations.' })

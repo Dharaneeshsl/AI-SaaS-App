@@ -57,10 +57,16 @@ const proxyApiRequest = (req, res) => {
 }
 
 const safeJoin = (root, requestPath) => {
-  const decoded = decodeURIComponent(requestPath.split('?')[0])
+  let decoded
+  try {
+    decoded = decodeURIComponent(requestPath.split('?')[0])
+  } catch {
+    return null
+  }
   const normalized = path.normalize(decoded).replace(/^([/\\])+/, '')
   const fullPath = path.join(root, normalized)
-  if (!fullPath.startsWith(root)) {
+  const relative = path.relative(root, fullPath)
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
     return null
   }
   return fullPath

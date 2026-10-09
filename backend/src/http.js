@@ -51,7 +51,13 @@ export const readJsonBody = async (req) => {
   }
 
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+    const parsed = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      const error = new Error('Request body must be a JSON object.')
+      error.status = 400
+      throw error
+    }
+    return parsed
   } catch {
     const error = new Error('Request body must be valid JSON.')
     error.status = 400
@@ -60,7 +66,7 @@ export const readJsonBody = async (req) => {
 }
 
 export const getClientIp = (req) => {
-  const forwarded = req.headers['x-forwarded-for']
+  const forwarded = config.trustProxy && req.headers['x-forwarded-for']
 
   if (typeof forwarded === 'string' && forwarded.length > 0) {
     return forwarded.split(',')[0].trim()

@@ -9,18 +9,20 @@ const endpointMap = {
   object: '/api/media/remove-object',
 }
 
-const buildHeaders = (userId) => {
+const buildHeaders = (userId, token) => {
   const headers = { 'content-type': 'application/json' }
-  if (userId) {
+  if (token) {
+    headers.authorization = `Bearer ${token}`
+  } else if (userId) {
     headers['x-user-id'] = userId
   }
   return headers
 }
 
-const request = async (path, { method = 'GET', body, userId } = {}) => {
+const request = async (path, { method = 'GET', body, userId, token } = {}) => {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
-    headers: buildHeaders(userId),
+    headers: buildHeaders(userId, token),
     body: body ? JSON.stringify(body) : undefined,
   })
 
@@ -33,7 +35,7 @@ const request = async (path, { method = 'GET', body, userId } = {}) => {
   return data
 }
 
-export const submitToolRequest = async (outputType, values, userId) => {
+export const submitToolRequest = async (outputType, values, userId, token) => {
   const endpoint = endpointMap[outputType]
 
   if (!endpoint) {
@@ -45,12 +47,12 @@ export const submitToolRequest = async (outputType, values, userId) => {
     return body
   }, {})
 
-  const data = await request(endpoint, { method: 'POST', body: payload, userId })
+  const data = await request(endpoint, { method: 'POST', body: payload, userId, token })
   return { output: data.output, id: data.id, mode: data.mode }
 }
 
-export const fetchCreations = async (userId) => {
-  const data = await request('/api/creations', { userId })
+export const fetchCreations = async (userId, token) => {
+  const data = await request('/api/creations', { userId, token })
   return data.creations || []
 }
 
@@ -59,16 +61,17 @@ export const fetchCommunity = async () => {
   return data.creations || []
 }
 
-export const publishCreation = async (id, userId, publish = true) => {
+export const publishCreation = async (id, userId, publish = true, token) => {
   const data = await request(`/api/creations/${id}/publish`, {
     method: 'POST',
     body: { publish },
     userId,
+    token,
   })
   return data.creation
 }
 
-export const likeCreation = async (id, userId) => {
-  const data = await request(`/api/creations/${id}/like`, { method: 'POST', userId })
+export const likeCreation = async (id, userId, token) => {
+  const data = await request(`/api/creations/${id}/like`, { method: 'POST', userId, token })
   return data.creation
 }

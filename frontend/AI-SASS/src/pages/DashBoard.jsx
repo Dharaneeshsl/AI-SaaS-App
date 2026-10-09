@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Calendar, Clock, FileText, Image as ImageIcon, Loader2, Sparkles } from 'lucide-react'
 import { fetchCreations } from '../lib/api'
 import { useAuth } from '../auth/authContext'
-import { dummyCreationData, dummyPublishedCreationData } from '../assets/assets'
 
 const withinLastDay = (iso) => {
   const created = new Date(iso).getTime()
@@ -16,24 +15,27 @@ const sameMonth = (iso) => {
 }
 
 const DashBoard = () => {
-  const { user } = useAuth()
+  const { user, getToken } = useAuth()
   const [creations, setCreations] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     let active = true
 
     const load = async () => {
       setLoading(true)
+      setError('')
       try {
-        const data = await fetchCreations(user?.id)
+        const token = await getToken()
+        const data = await fetchCreations(user?.id, token)
         if (active) {
           setCreations(data)
         }
-      } catch {
-        // Fall back to sample data so the dashboard is never empty in demo mode.
+      } catch (requestError) {
         if (active) {
-          setCreations([...dummyCreationData, ...dummyPublishedCreationData])
+          setCreations([])
+          setError(requestError instanceof Error ? requestError.message : 'Could not load your creations.')
         }
       } finally {
         if (active) {
@@ -113,6 +115,10 @@ const DashBoard = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 flex items-center justify-center text-gray-500">
           <Loader2 className="w-5 h-5 animate-spin mr-2" />
           Loading your creations...
+        </div>
+      ) : error ? (
+        <div className="rounded-xl border border-red-100 bg-red-50 p-8 text-center text-sm text-red-700" role="alert">
+          {error}
         </div>
       ) : recent.length > 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">

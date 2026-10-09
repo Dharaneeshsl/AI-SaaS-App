@@ -10,6 +10,15 @@ const clean = (value, fallback = '') => {
 
 const lines = (items) => items.filter(Boolean).join('\n')
 
+const withFallback = async (demoOutput, request) => {
+  const live = await generateText(request)
+  if (live) {
+    return { output: live, mode: 'provider-live' }
+  }
+
+  return { output: demoOutput, mode: 'demo' }
+}
+
 // ---------------------------------------------------------------------------
 // Deterministic demo generators. These run with zero configuration so the app
 // is fully functional without any provider keys, and act as the fallback when
@@ -83,56 +92,48 @@ export const generateArticle = async ({ topic, tone = 'Professional', length = '
 
   const wordTarget = { short: '350-500', medium: '700-900', long: '1200-1600' }[safeLength] || '700-900'
 
-  const live = await generateText({
+  return withFallback(demoArticle(safeTopic, safeTone, safeLength), {
     system:
       'You are a senior content writer. Produce clean, well-structured Markdown articles with a clear headline, short scannable sections, and a strong opening. Do not include meta commentary.',
     prompt: `Write a ${safeTone}, ${safeLength} article (${wordTarget} words) about: "${safeTopic}". Use a compelling H1 title, 2-4 section headings, and a concise closing takeaway.`,
     maxTokens: 3072,
   })
-
-  return live || demoArticle(safeTopic, safeTone, safeLength)
 }
 
 export const generateTitles = async ({ keyword, category = 'General' }) => {
   const safeKeyword = clean(keyword, 'AI growth')
   const safeCategory = clean(category, 'General')
 
-  const live = await generateText({
+  return withFallback(demoTitles(safeKeyword, safeCategory), {
     system:
       'You are an editorial headline strategist. Return exactly five high-intent, click-worthy blog titles, one per line, with no numbering, quotes, or extra commentary.',
     prompt: `Generate five blog title options for the keyword "${safeKeyword}" in the "${safeCategory}" category.`,
     maxTokens: 512,
   })
-
-  return live || demoTitles(safeKeyword, safeCategory)
 }
 
 export const prepareImagePrompt = async ({ prompt, style = 'Realistic' }) => {
   const safePrompt = clean(prompt, 'A polished SaaS product visual')
   const safeStyle = clean(style, 'Realistic').toLowerCase()
 
-  const live = await generateText({
+  return withFallback(demoImagePrompt(safePrompt, safeStyle), {
     system:
       'You are an expert prompt engineer for text-to-image models. Expand the user idea into a single, richly detailed image generation brief covering subject, composition, lighting, color, mood, and style. Keep it under 120 words.',
     prompt: `Create a production-ready image prompt for: "${safePrompt}". Target style: ${safeStyle}.`,
     maxTokens: 512,
   })
-
-  return live || demoImagePrompt(safePrompt, safeStyle)
 }
 
 export const reviewResume = async ({ role, resume }) => {
   const safeRole = clean(role, 'target role')
   const safeResume = clean(resume, 'Paste resume text to receive a sharper review.')
 
-  const live = await generateText({
+  return withFallback(demoResume(safeRole, safeResume), {
     system:
       'You are an expert technical recruiter and resume coach. Review resumes concisely: give an overall score out of 100, list what works, and list specific, actionable improvements. Use plain text with short bullet points.',
     prompt: `Review this resume for the role of "${safeRole}". Provide a score, strengths, and prioritized improvements.\n\nResume:\n${safeResume}`,
     maxTokens: 1536,
   })
-
-  return live || demoResume(safeRole, safeResume)
 }
 
 // Build a deterministic SVG data URL so media tools return a real visual preview
@@ -148,7 +149,7 @@ export const prepareBackgroundRemoval = async ({ fileName, image }) => {
   const label = escapeXml(safeFile.length > 42 ? `${safeFile.slice(0, 39)}...` : safeFile)
 
   // Demo output: a cutout-style card with a transparent checkerboard background.
-  return svgDataUrl(`
+  return { output: svgDataUrl(`
     <svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720">
       <defs>
         <pattern id="checker" width="24" height="24" patternUnits="userSpaceOnUse">
@@ -169,7 +170,7 @@ export const prepareBackgroundRemoval = async ({ fileName, image }) => {
       <text x="68" y="102" fill="#d1d5db" font-family="Segoe UI, Arial, sans-serif" font-size="13">${label}</text>
       <text x="48" y="680" fill="#4b5563" font-family="Segoe UI, Arial, sans-serif" font-size="14">Demo preview · transparent PNG when a media provider key is set</text>
     </svg>
-  `)
+  `), mode: 'demo' }
 }
 
 export const prepareObjectRemoval = async ({ fileName, image, objectName }) => {
@@ -179,7 +180,7 @@ export const prepareObjectRemoval = async ({ fileName, image, objectName }) => {
   const objectLabel = escapeXml(safeObject.length > 36 ? `${safeObject.slice(0, 33)}...` : safeObject)
 
   // Demo output: scene with a "removed" zone callout for the target object.
-  return svgDataUrl(`
+  return { output: svgDataUrl(`
     <svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720">
       <defs>
         <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
@@ -199,5 +200,5 @@ export const prepareObjectRemoval = async ({ fileName, image, objectName }) => {
       <text x="68" y="108" fill="#d1d5db" font-family="Segoe UI, Arial, sans-serif" font-size="13">${objectLabel} · ${fileLabel}</text>
       <text x="48" y="680" fill="#4b5563" font-family="Segoe UI, Arial, sans-serif" font-size="14">Demo preview · live inpainting when an image-editing provider is connected</text>
     </svg>
-  `)
+  `), mode: 'demo' }
 }

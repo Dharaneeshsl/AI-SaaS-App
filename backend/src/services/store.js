@@ -23,8 +23,14 @@ const load = async () => {
   try {
     const raw = await readFile(dataFile, 'utf8')
     const parsed = JSON.parse(raw)
-    cache = Array.isArray(parsed) ? parsed : []
-  } catch {
+    if (!Array.isArray(parsed)) {
+      throw new Error('Creations store must contain an array.')
+    }
+    cache = parsed
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      throw new Error(`Unable to load creations store: ${error.message}`)
+    }
     cache = []
   }
 
@@ -32,14 +38,23 @@ const load = async () => {
 }
 
 const persist = async () => {
-  writeQueue = writeQueue.then(async () => {
+  const write = async () => {
     await mkdir(dataDir, { recursive: true })
     const tempFile = `${dataFile}.${randomUUID()}.tmp`
     await writeFile(tempFile, JSON.stringify(cache, null, 2))
     await rename(tempFile, dataFile)
-  })
+  }
 
-  return writeQueue
+  writeQueue = writeQueue.then(write, write)
+
+  try {
+    await writeQueue
+  } catch (error) {
+    writeQueue = Promise.resolve()
+    throw error
+  }
+
+  return undefined
 }
 
 /**

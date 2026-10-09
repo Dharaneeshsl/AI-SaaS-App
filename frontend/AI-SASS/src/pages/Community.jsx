@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { FileText, Heart, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { fetchCommunity, likeCreation } from '../lib/api'
 import { useAuth } from '../auth/authContext'
-import { dummyPublishedCreationData } from '../assets/assets'
 
 const isImageContent = (creation) =>
   typeof creation.content === 'string' &&
@@ -11,24 +10,26 @@ const isImageContent = (creation) =>
     creation.content.startsWith('http'))
 
 const Community = () => {
-  const { user } = useAuth()
+  const { user, getToken } = useAuth()
   const [creations, setCreations] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     let active = true
 
     const load = async () => {
       setLoading(true)
+      setError('')
       try {
         const data = await fetchCommunity()
         if (active) {
-          // Show published creations; fall back to sample gallery when empty.
-          setCreations(data.length > 0 ? data : dummyPublishedCreationData)
+          setCreations(data)
         }
-      } catch {
+      } catch (requestError) {
         if (active) {
-          setCreations(dummyPublishedCreationData)
+          setCreations([])
+          setError(requestError instanceof Error ? requestError.message : 'Could not load the community feed.')
         }
       } finally {
         if (active) {
@@ -49,10 +50,11 @@ const Community = () => {
     }
 
     try {
-      const updated = await likeCreation(creation.id, user.id)
+      const token = await getToken()
+      const updated = await likeCreation(creation.id, user.id, token)
       setCreations((current) => current.map((item) => (item.id === updated.id ? updated : item)))
-    } catch {
-      // Ignore like failures (e.g. sample data that is not persisted).
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Could not update the like.')
     }
   }
 
@@ -70,9 +72,13 @@ const Community = () => {
           <Loader2 className="mr-2 h-5 w-5 animate-spin" />
           Loading community creations...
         </div>
+      ) : error ? (
+        <div className="rounded-xl border border-red-100 bg-red-50 p-8 text-center text-sm text-red-700" role="alert">
+          {error}
+        </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {creations.map((creation) => {
+          {creations.length > 0 ? creations.map((creation) => {
             const liked = Boolean(user?.id && creation.likes?.includes(user.id))
             const showImage = isImageContent(creation)
 
@@ -110,7 +116,11 @@ const Community = () => {
                 </div>
               </article>
             )
-          })}
+          }) : (
+            <div className="col-span-full rounded-xl border border-dashed border-gray-200 p-12 text-center text-sm text-gray-500">
+              No published creations yet.
+            </div>
+          )}
         </div>
       )}
     </div>

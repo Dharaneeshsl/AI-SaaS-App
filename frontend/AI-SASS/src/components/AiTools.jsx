@@ -6,7 +6,7 @@ import { useAuth } from '../auth/authContext';
 const AiTools = ({ variant = 'grid', onCloseSidebar }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isConfigured } = useAuth();
+  const { user, isConfigured, openSignIn } = useAuth();
   const canOpenTools = Boolean(user) || !isConfigured;
 
   if (variant === 'sidebar') {
@@ -51,7 +51,7 @@ const AiTools = ({ variant = 'grid', onCloseSidebar }) => {
           <div
             key={tool.path}
             className='p-8 m-4 max-w-xs rounded-lg bg-[#FDFDFE] shadow-lg border border-gray-100 hover:-translate-y-1 transition-all duration-300 cursor-pointer'
-            onClick={() => canOpenTools && navigate(tool.path)}
+            onClick={() => (canOpenTools ? navigate(tool.path) : openSignIn())}
           >
             <tool.Icon
               className='w-12 h-12 p-3 text-white rounded-xl'

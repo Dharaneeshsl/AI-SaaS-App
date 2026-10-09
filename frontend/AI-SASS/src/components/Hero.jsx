@@ -29,7 +29,10 @@ const Hero = () => {
         >
           Start creating now
         </button>
-        <button className="bg-white px-10 py-3 rounded-lg border border-gray-300 hover:scale-105 active:scale-95 transition cursor-pointer">
+        <button
+          onClick={() => navigate('/ai')}
+          className="bg-white px-10 py-3 rounded-lg border border-gray-300 hover:scale-105 active:scale-95 transition cursor-pointer"
+        >
           Watch Demo
         </button>
       </div>
