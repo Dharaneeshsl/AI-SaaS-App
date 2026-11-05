@@ -4,9 +4,11 @@
   "version": "1.0.0",
   "description": "Full-stack AI SaaS platform — React frontend + Node.js backend. One command to run everything.",
   "scripts": {
+    "test:browser": "npm --prefix frontend/AI-SASS run test:browser",
     "install:all": "npm --prefix backend install && npm --prefix frontend/AI-SASS install",
     "build": "npm --prefix frontend/AI-SASS run build",
     "start": "node scripts/start.cjs",
+    "test:smoke": "node scripts/smoke.cjs",
     "verify": "npm --prefix backend run lint && npm --prefix backend test && npm --prefix frontend/AI-SASS run lint && npm --prefix frontend/AI-SASS run build"
   },
   "engines": {

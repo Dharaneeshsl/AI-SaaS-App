@@ -2,19 +2,13 @@ import { useMemo, useState } from 'react'
 import { Check, Loader2, Share2, Sparkles } from 'lucide-react'
 import { publishCreation, submitToolRequest } from '../lib/api'
 import { useAuth } from '../auth/authContext'
-
-const isImageOutput = (value) =>
-  typeof value === 'string' &&
-  (value.startsWith('data:image') ||
-    value.startsWith('http://') ||
-    value.startsWith('https://') ||
-    /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(value))
+import { downloadOutput, isImageOutput } from '../lib/output'
 
 const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Generate' }) => {
   const initialValues = useMemo(
     () =>
       fields.reduce((values, field) => {
-        values[field.name] = field.defaultValue || ''
+        values[field.name] = field.defaultValue || field.options?.[0] || ''
         return values
       }, {}),
     [fields],
@@ -28,6 +22,7 @@ const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Gener
   const [published, setPublished] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState('')
+  const [mode, setMode] = useState('')
 
   const updateValue = (name, value) => {
     setValues((current) => ({ ...current, [name]: value }))
@@ -41,7 +36,7 @@ const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Gener
     setError('')
     setOutput('')
 
-    const missingRequired = fields.find((field) => field.required && !values[field.name])
+    const missingRequired = fields.find((field) => field.required && !String(values[field.name] || '').trim())
     if (missingRequired) {
       setError(`${missingRequired.label} is required.`)
       setLoading(false)
@@ -50,9 +45,10 @@ const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Gener
 
     try {
       const token = await getToken()
-      const { output: generated, id } = await submitToolRequest(outputType, values, user?.id, token)
+      const { output: generated, id, mode: resultMode } = await submitToolRequest(outputType, values, user?.id, token)
       setOutput(generated)
       setCreationId(id || null)
+      setMode(resultMode)
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'The request failed. Please try again.')
     } finally {
@@ -131,7 +127,7 @@ const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Gener
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || publishing}
             className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
@@ -143,10 +139,11 @@ const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Gener
         <section className="min-h-[360px] rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-3">
             <h2 className="font-semibold text-gray-900">Output</h2>
-            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">Preview</span>
+            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">{output ? mode === 'provider-live' ? 'AI result' : 'Demo sample' : 'Output'}</span>
           </div>
           {output ? (
             <>
+              {mode === 'demo' && <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800" role="status">This is a sample result. Image editing samples do not modify your uploaded image.</p>}
               {isImageOutput(output) ? (
                 <div className="overflow-hidden rounded-lg border border-gray-100 bg-gray-50">
                   <img src={output} alt="Generated result" className="mx-auto max-h-[480px] w-full object-contain" />
@@ -154,6 +151,7 @@ const ToolPage = ({ title, description, fields, outputType, submitLabel = 'Gener
               ) : (
                 <pre className="whitespace-pre-wrap text-sm leading-6 text-gray-700">{output}</pre>
               )}
+              <button type="button" className="mt-4 rounded-lg border px-4 py-2 text-sm" onClick={() => downloadOutput(output, outputType).catch(() => setError('Could not download this result.'))}>Download result</button>
               {creationId && user && (
                 <div className="mt-5 border-t border-gray-100 pt-4">
                   {published ? (

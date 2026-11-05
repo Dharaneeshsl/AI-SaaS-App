@@ -1,4 +1,5 @@
 const http = require('node:http')
+const https = require('node:https')
 const fs = require('node:fs')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
@@ -39,12 +40,14 @@ const proxyApiRequest = (req, res) => {
   const target = new URL(req.url, backendOrigin)
   const headers = { ...req.headers, host: target.host }
 
-  const proxyRequest = http.request(target, { method: req.method, headers }, (proxyResponse) => {
+  const transport = target.protocol === 'https:' ? https : http
+  const proxyRequest = transport.request(target, { method: req.method, headers }, (proxyResponse) => {
     res.writeHead(proxyResponse.statusCode || 502, proxyResponse.headers)
     proxyResponse.pipe(res)
   })
 
   proxyRequest.on('error', (error) => {
+    if (res.headersSent) return res.destroy()
     send(
       res,
       502,
@@ -52,6 +55,7 @@ const proxyApiRequest = (req, res) => {
       { 'content-type': 'application/json; charset=utf-8' },
     )
   })
+  proxyRequest.setTimeout(150_000, () => proxyRequest.destroy(new Error('Backend timeout')))
 
   req.pipe(proxyRequest)
 }
@@ -79,6 +83,7 @@ const server = http.createServer((req, res) => {
   if (urlPath === '/api' || urlPath.startsWith('/api/')) {
     return proxyApiRequest(req, res)
   }
+  if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Method not allowed', { allow: 'GET, HEAD' })
 
   let filePath = safeJoin(distDir, urlPath === '/' ? '/index.html' : urlPath)
 
@@ -88,6 +93,7 @@ const server = http.createServer((req, res) => {
 
   // SPA fallback: unknown paths (e.g. /ai/writearticle) serve index.html
   if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+    if (urlPath.startsWith('/assets/')) return send(res, 404, 'Not found')
     filePath = path.join(distDir, 'index.html')
   }
 
@@ -99,8 +105,9 @@ const server = http.createServer((req, res) => {
       return send(res, 404, 'Not found')
     }
 
-    send(res, 200, data, {
+    send(res, 200, req.method === 'HEAD' ? undefined : data, {
       'content-type': type,
+      'x-content-type-options': 'nosniff',
       'cache-control': ext === '.html' ? 'no-cache' : 'public, max-age=3600',
     })
   })
@@ -112,7 +119,7 @@ if (!fs.existsSync(path.join(distDir, 'index.html'))) {
 }
 
 server.listen(port, host, () => {
-  console.log(`Frontend preview: http://${host}:${port}/`)
+  console.log(`Frontend preview: http://${host}:${server.address().port}/`)
   console.log(`API proxy: ${backendOrigin}`)
   console.log(`Serving ${pathToFileURL(distDir).href}`)
 })

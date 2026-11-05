@@ -8,7 +8,7 @@ const Blogtitle = () => {
       outputType="title"
       submitLabel="Generate titles"
       fields={[
-        { name: 'keyword', label: 'Keyword', placeholder: 'AI automation for agencies' },
+        { name: 'keyword', label: 'Keyword', placeholder: 'AI automation for agencies', required: true },
         { name: 'category', label: 'Category', type: 'select', options: ['Marketing', 'Technology', 'Startup', 'Product', 'General'] },
       ]}
     />

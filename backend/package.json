@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node src/server.js",
-    "test": "node scripts/test.js",
+    "test": "node scripts/test.js && node --test scripts/providers.test.js scripts/store.test.js",
     "lint": "node scripts/lint.js"
   },
   "engines": {
@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
-    "@clerk/backend": "^2.27.0"
+    "@clerk/backend": "^2.27.0",
+    "mongodb": "^6.17.0"
   }
 }

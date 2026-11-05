@@ -4,11 +4,11 @@ const RemoveObject = () => {
   return (
     <ToolPage
       title="Object Removal"
-      description="Upload an image and describe what to remove. Fully functional preview in demo mode without API keys."
+      description="Upload a PNG, JPEG, or WebP image up to 5 MB and describe the object to remove. Sample mode shows a demonstration only."
       outputType="object"
       submitLabel="Remove object"
       fields={[
-        { name: 'image', label: 'Image', type: 'file', accept: 'image/*', required: true },
+        { name: 'image', label: 'Image', type: 'file', accept: 'image/png,image/jpeg,image/webp', required: true },
         { name: 'objectName', label: 'Object to remove', placeholder: 'Coffee cup on the desk', required: true },
       ]}
     />

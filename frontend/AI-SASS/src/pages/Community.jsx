@@ -14,6 +14,7 @@ const Community = () => {
   const [creations, setCreations] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [pendingLikes, setPendingLikes] = useState([])
 
   useEffect(() => {
     let active = true
@@ -22,7 +23,7 @@ const Community = () => {
       setLoading(true)
       setError('')
       try {
-        const data = await fetchCommunity()
+        const data = await fetchCommunity(user?.id, await getToken())
         if (active) {
           setCreations(data)
         }
@@ -42,19 +43,22 @@ const Community = () => {
     return () => {
       active = false
     }
-  }, [])
+  }, [user?.id, getToken])
 
   const handleLike = async (creation) => {
-    if (!user?.id) {
+    if (!user?.id || pendingLikes.includes(creation.id)) {
       return
     }
 
+    setPendingLikes((current) => [...current, creation.id])
     try {
       const token = await getToken()
       const updated = await likeCreation(creation.id, user.id, token)
       setCreations((current) => current.map((item) => (item.id === updated.id ? updated : item)))
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Could not update the like.')
+    } finally {
+      setPendingLikes((current) => current.filter((id) => id !== creation.id))
     }
   }
 
@@ -79,7 +83,7 @@ const Community = () => {
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {creations.length > 0 ? creations.map((creation) => {
-            const liked = Boolean(user?.id && creation.likes?.includes(user.id))
+            const liked = creation.liked_by_me
             const showImage = isImageContent(creation)
 
             return (
@@ -107,11 +111,12 @@ const Community = () => {
                   <button
                     type="button"
                     onClick={() => handleLike(creation)}
-                    disabled={!user?.id}
+                    disabled={!user?.id || pendingLikes.includes(creation.id)}
+                    aria-pressed={liked}
                     className="mt-4 flex items-center gap-2 text-sm text-gray-500 transition hover:text-rose-500 disabled:cursor-default"
                   >
                     <Heart className={`h-4 w-4 ${liked ? 'fill-rose-500 text-rose-500' : 'text-rose-400'}`} />
-                    {creation.likes?.length || 0} likes
+                    {creation.like_count || 0} likes
                   </button>
                 </div>
               </article>

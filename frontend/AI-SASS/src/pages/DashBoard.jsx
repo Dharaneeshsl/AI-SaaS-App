@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Calendar, Clock, FileText, Image as ImageIcon, Loader2, Sparkles } from 'lucide-react'
+import { Calendar, Clock, Image as ImageIcon, Loader2, Sparkles } from 'lucide-react'
+import SavedCreation from '../components/SavedCreation'
 import { fetchCreations } from '../lib/api'
 import { useAuth } from '../auth/authContext'
 
@@ -48,7 +49,7 @@ const DashBoard = () => {
     return () => {
       active = false
     }
-  }, [user?.id])
+  }, [user?.id, getToken])
 
   const stats = useMemo(
     () => ({
@@ -59,7 +60,7 @@ const DashBoard = () => {
     [creations],
   )
 
-  const recent = creations.slice(0, 6)
+  const recent = creations
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -122,24 +123,12 @@ const DashBoard = () => {
         </div>
       ) : recent.length > 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Creations</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Saved Creations</h2>
           <div className="space-y-3">
             {recent.map((creation) => (
-              <div
-                key={creation.id}
-                className="flex items-start gap-3 rounded-lg border border-gray-100 p-4 hover:bg-gray-50 transition-colors"
-              >
-                <div className="mt-0.5 rounded-lg bg-blue-50 p-2">
-                  <FileText className="w-4 h-4 text-blue-600" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-gray-800 line-clamp-1">{creation.prompt}</p>
-                  <p className="mt-1 line-clamp-2 text-xs text-gray-500">{creation.content}</p>
-                </div>
-                <span className="shrink-0 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
-                  {creation.type}
-                </span>
-              </div>
+              <SavedCreation key={creation.id} creation={creation}
+                onChange={(updated) => setCreations((current) => current.map((item) => item.id === updated.id ? updated : item))}
+                onDelete={(id) => setCreations((current) => current.filter((item) => item.id !== id))} />
             ))}
           </div>
         </div>

@@ -4,11 +4,11 @@ const RemoveBackground = () => {
   return (
     <ToolPage
       title="Background Removal"
-      description="Upload an image to generate a transparent-background cutout preview. Fully functional in demo mode without API keys."
+      description="Upload a PNG, JPEG, or WebP image up to 5 MB for a transparent cutout. Sample mode shows a demonstration only."
       outputType="background"
       submitLabel="Remove background"
       fields={[
-        { name: 'image', label: 'Image', type: 'file', accept: 'image/*', required: true },
+        { name: 'image', label: 'Image', type: 'file', accept: 'image/png,image/jpeg,image/webp', required: true },
       ]}
     />
   )

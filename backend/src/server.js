@@ -34,7 +34,7 @@ setInterval(cleanupRateLimits, 60_000).unref()
 
 if (process.env.NODE_ENV !== 'test') {
   server.listen(config.port, () => {
-    console.log(`AI SaaS backend listening on http://127.0.0.1:${config.port}`)
+    console.log(`AI SaaS backend listening on http://127.0.0.1:${server.address().port}`)
   })
 }
 

@@ -39,7 +39,7 @@ const Hero = () => {
 
       <div className="flex justify-center items-center mt-8 gap-2 text-gray-700 text-sm">
         <img src={user_group} alt="users" className="h-8" />
-        Trusted by 10k people
+        Six creative tools in one workspace
       </div>
     </div>
   );

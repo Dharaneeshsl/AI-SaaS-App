@@ -1,4 +1,5 @@
 import { generateText } from '../providers/anthropic.js'
+import { generateImage } from '../providers/images.js'
 
 const clean = (value, fallback = '') => {
   if (typeof value !== 'string') {
@@ -21,8 +22,7 @@ const withFallback = async (demoOutput, request) => {
 
 // ---------------------------------------------------------------------------
 // Deterministic demo generators. These run with zero configuration so the app
-// is fully functional without any provider keys, and act as the fallback when
-// a live provider request fails.
+// can be explored without provider keys. Configured provider failures propagate.
 // ---------------------------------------------------------------------------
 
 const demoArticle = (safeTopic, safeTone, safeLength) =>
@@ -115,6 +115,8 @@ export const generateTitles = async ({ keyword, category = 'General' }) => {
 export const prepareImagePrompt = async ({ prompt, style = 'Realistic' }) => {
   const safePrompt = clean(prompt, 'A polished SaaS product visual')
   const safeStyle = clean(style, 'Realistic').toLowerCase()
+  const image = await generateImage({ prompt: `${safePrompt}. Visual style: ${safeStyle}.` })
+  if (image) return image
 
   return withFallback(demoImagePrompt(safePrompt, safeStyle), {
     system:
@@ -144,7 +146,9 @@ const svgDataUrl = (svg) =>
 const escapeXml = (value) =>
   clean(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-export const prepareBackgroundRemoval = async ({ fileName, image }) => {
+export const prepareBackgroundRemoval = async ({ fileName, image, imageData }) => {
+  const live = await generateImage({ image: imageData, transparent: true, prompt: 'Remove the background of this image. Preserve the foreground subject, its appearance, colors, and edges. Return a clean cutout on a fully transparent background.' })
+  if (live) return live
   const safeFile = clean(fileName || image, 'Image')
   const label = escapeXml(safeFile.length > 42 ? `${safeFile.slice(0, 39)}...` : safeFile)
 
@@ -173,7 +177,9 @@ export const prepareBackgroundRemoval = async ({ fileName, image }) => {
   `), mode: 'demo' }
 }
 
-export const prepareObjectRemoval = async ({ fileName, image, objectName }) => {
+export const prepareObjectRemoval = async ({ fileName, image, imageData, objectName }) => {
+  const live = await generateImage({ image: imageData, prompt: `Remove only the following object from this image: ${clean(objectName)}. Fill the removed area naturally to match its surroundings. Preserve all other subjects and the composition.` })
+  if (live) return live
   const safeFile = clean(fileName || image, 'the uploaded image')
   const safeObject = clean(objectName, 'Selected object')
   const fileLabel = escapeXml(safeFile.length > 36 ? `${safeFile.slice(0, 33)}...` : safeFile)

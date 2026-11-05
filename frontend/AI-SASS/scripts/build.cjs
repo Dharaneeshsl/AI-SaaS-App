@@ -232,14 +232,14 @@ const buildApp = async () => {
   await fs.copyFile(path.resolve('src/assets/favicon.svg'), path.join(assetsDir, 'favicon.svg'))
 
   const frontendEnv = readFrontendEnv()
-  const envBootstrap = `<script>window.__AI_SASS_ENV__=${JSON.stringify(frontendEnv)};</script>`
+  const envBootstrap = `<script>window.__AI_SASS_ENV__=${JSON.stringify(frontendEnv).replace(/</g, '\\u003c')};</script>`
 
   const html = await fs.readFile(path.resolve('index.html'), 'utf8')
   const productionHtml = html
-    .replace('/src/assets/favicon.svg', './assets/favicon.svg')
+    .replace('/src/assets/favicon.svg', '/assets/favicon.svg')
     .replace(
       '<script type="module" src="/src/main.jsx"></script>',
-      `<link rel="stylesheet" href="./assets/styles.css" />\n    ${envBootstrap}\n    <script type="module" src="./assets/main.js"></script>`,
+      `<link rel="stylesheet" href="/assets/styles.css" />\n    ${envBootstrap}\n    <script type="module" src="/assets/main.js"></script>`,
     )
 
   await fs.writeFile(path.join(distDir, 'index.html'), productionHtml)

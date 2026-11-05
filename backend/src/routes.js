@@ -1,6 +1,7 @@
 import { config } from './config.js'
 import { readJsonBody, sendCorsJson } from './http.js'
 import { getUserId } from './auth.js'
+import { decodeImage } from './providers/images.js'
 import {
   generateArticle,
   generateTitles,
@@ -12,9 +13,11 @@ import {
 import {
   listPublishedCreations,
   listUserCreations,
-  saveCreation,
-  setPublished,
-  toggleLike,
+  persistCreation,
+  changePublished,
+  changeLike,
+  removeCreation,
+  reserveGeneration,
 } from './services/store.js'
 
 const ok = (output, meta = {}) => ({
@@ -56,9 +59,11 @@ const validateToolInput = (type, body) => {
   }
 
   if (type === 'background-removal' || type === 'object-removal') {
-    if (!body.fileName && !body.image) {
-      throw invalid('An image is required.')
-    }
+    decodeImage(body.imageData)
+    if (type === 'object-removal' && !body.objectName?.trim()) throw invalid('Describe the object to remove.')
+  } else {
+    const required = { article: 'topic', 'blog-title': 'keyword', image: 'prompt', resume: 'resume' }[type]
+    if (required && !body[required]?.trim()) throw invalid(`${required} is required.`)
   }
 }
 
@@ -95,26 +100,41 @@ const summarize = (type, body) => {
 // Run an AI tool, persist the result as a creation, and respond.
 const handleTool = async (req, res, { type, generator, publishByDefault = false }) => {
   requirePost(req)
-  const body = await readJsonBody(req)
-  validateToolInput(type, body)
   const userId = await getUserId(req)
 
   if (!userId) {
     return sendCorsJson(res, 401, { ok: false, error: 'Authentication is required.' })
   }
 
-  const result = await generator(body)
+  const body = await readJsonBody(req)
+  validateToolInput(type, body)
+  const usage = await reserveGeneration(userId, req.plan || 'free')
+  if (!usage.allowed) return sendCorsJson(res, 429, { ok: false, error: `Monthly generation limit reached (${usage.limit}). Resets next month.`, limit: usage.limit, month: usage.month })
+  let result
+  try {
+    result = await generator(body)
+  } catch (error) {
+    await usage.release()
+    throw error
+  }
   const output = result.output
 
-  const creation = await saveCreation({
+  let creation
+  try {
+  creation = await persistCreation({
     userId,
     type,
     prompt: summarize(type, body),
     content: output,
+    mode: mode(result),
     publish: publishByDefault,
   })
+  } catch (error) {
+    await usage.release()
+    throw error
+  }
 
-  return sendCorsJson(res, 200, ok(output, { id: creation.id, mode: mode(result) }))
+  return sendCorsJson(res, 200, ok(output, { id: creation.id, mode: mode(result), usage: { limit: usage.limit, month: usage.month } }))
 }
 
 export const routeRequest = async (req, res, pathname) => {
@@ -128,7 +148,7 @@ export const routeRequest = async (req, res, pathname) => {
         aiMode: config.hasAnthropicKey ? 'provider-live' : 'demo',
         clerkConfigured: config.hasClerkSecret,
         openAiConfigured: config.hasOpenAiKey,
-        mediaMode: 'demo-preview',
+        mediaMode: config.hasOpenAiKey ? 'provider-live' : 'demo-preview',
       },
     })
   }
@@ -169,7 +189,7 @@ export const routeRequest = async (req, res, pathname) => {
 
   // Publicly published creations (community feed).
   if (req.method === 'GET' && pathname === '/api/community') {
-    const creations = await listPublishedCreations()
+    const creations = await listPublishedCreations(await getUserId(req))
     return sendCorsJson(res, 200, { ok: true, creations })
   }
 
@@ -182,7 +202,8 @@ export const routeRequest = async (req, res, pathname) => {
       return sendCorsJson(res, 401, { ok: false, error: 'Authentication is required.' })
     }
     const body = await readJsonBody(req)
-    const record = await setPublished(publishMatch[1], userId, body.publish !== false)
+    if (typeof body.publish !== 'boolean') throw invalid('publish must be a boolean.')
+    const record = await changePublished(publishMatch[1], userId, body.publish)
 
     if (!record) {
       return sendCorsJson(res, 404, { ok: false, error: 'Creation not found.' })
@@ -191,7 +212,17 @@ export const routeRequest = async (req, res, pathname) => {
     return sendCorsJson(res, 200, { ok: true, creation: record })
   }
 
-  // Toggle a like on any creation.
+  const deleteMatch = pathname.match(/^\/api\/creations\/([^/]+)\/delete$/)
+  if (deleteMatch) {
+    requirePost(req)
+    const userId = await getUserId(req)
+    if (!userId) return sendCorsJson(res, 401, { ok: false, error: 'Authentication is required.' })
+    const record = await removeCreation(deleteMatch[1], userId)
+    if (!record) return sendCorsJson(res, 404, { ok: false, error: 'Creation not found.' })
+    return sendCorsJson(res, 200, { ok: true })
+  }
+
+  // Only published creations can be liked.
   const likeMatch = pathname.match(/^\/api\/creations\/([^/]+)\/like$/)
   if (likeMatch) {
     requirePost(req)
@@ -201,7 +232,7 @@ export const routeRequest = async (req, res, pathname) => {
       return sendCorsJson(res, 401, { ok: false, error: 'Sign in to like creations.' })
     }
 
-    const record = await toggleLike(likeMatch[1], userId)
+    const record = await changeLike(likeMatch[1], userId)
 
     if (!record) {
       return sendCorsJson(res, 404, { ok: false, error: 'Creation not found.' })

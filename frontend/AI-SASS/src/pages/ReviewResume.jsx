@@ -9,7 +9,7 @@ const ReviewResume = () => {
       submitLabel="Review resume"
       fields={[
         { name: 'role', label: 'Target role', placeholder: 'Senior Frontend Engineer' },
-        { name: 'resume', label: 'Resume text', type: 'textarea', rows: 8, placeholder: 'Paste resume content here...' },
+        { name: 'resume', label: 'Resume text', type: 'textarea', rows: 8, placeholder: 'Paste resume content here...', required: true },
       ]}
     />
   )

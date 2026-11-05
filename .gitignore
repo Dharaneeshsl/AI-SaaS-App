@@ -59,6 +59,8 @@ Thumbs.db
 # Test Coverage
 # ----------------------------
 coverage/
+test-results/
+playwright-report/
 *.lcov
 
 # ----------------------------

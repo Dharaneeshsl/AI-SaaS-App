@@ -14,8 +14,8 @@ const getClient = async () => {
     clientPromise = import('@anthropic-ai/sdk')
       .then(({ default: Anthropic }) => new Anthropic({ apiKey: config.anthropicApiKey }))
       .catch((error) => {
-        console.warn('Anthropic SDK unavailable, falling back to demo mode:', error.message)
-        return null
+        console.warn('Anthropic SDK unavailable:', error.name)
+        throw Object.assign(new Error('Text provider unavailable.'), { status: 503 })
       })
   }
 
@@ -27,7 +27,7 @@ export const isLiveAiEnabled = () => config.hasAnthropicKey
 /**
  * Generate text with Claude. Streams the response so large outputs do not hit
  * HTTP timeouts, and returns the concatenated text. Returns null when live AI
- * is not configured or the request fails, so callers can fall back to demo output.
+ * is not configured. Configured provider failures are reported to the caller.
  */
 export const generateText = async ({ system, prompt, maxTokens = 2048 }) => {
   const client = await getClient()
@@ -40,21 +40,21 @@ export const generateText = async ({ system, prompt, maxTokens = 2048 }) => {
     const stream = client.messages.stream({
       model: config.anthropicModel,
       max_tokens: maxTokens,
-      thinking: { type: 'adaptive' },
-      output_config: { effort: 'medium' },
       system,
       messages: [{ role: 'user', content: prompt }],
     })
 
     const message = await stream.finalMessage()
 
-    return message.content
+    const output = message.content
       .filter((block) => block.type === 'text')
       .map((block) => block.text)
       .join('\n')
       .trim()
+    if (!output) throw new Error('Provider returned no text.')
+    return output
   } catch (error) {
-    console.error('Anthropic request failed, using demo fallback:', error.message)
-    return null
+    console.error('Anthropic request failed:', error.status || error.name)
+    throw Object.assign(new Error('Text provider unavailable. Please try again later.'), { status: 502 })
   }
 }

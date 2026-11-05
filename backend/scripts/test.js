@@ -5,6 +5,11 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 process.env.NODE_ENV = 'test'
+process.env.ALLOW_DEMO_AUTH = 'true'
+process.env.ANTHROPIC_API_KEY = ''
+process.env.OPENAI_API_KEY = ''
+process.env.CLERK_SECRET_KEY = ''
+process.env.RATE_LIMIT_MAX = '1000'
 // Isolate persistence so tests never touch the real data directory.
 const testDataDir = await mkdtemp(path.join(tmpdir(), 'ai-sass-test-'))
 process.env.DATA_DIR = testDataDir
@@ -98,12 +103,15 @@ const run = async () => {
     method: 'POST',
     headers: { 'x-user-id': 'test-user-2' },
   })
-  assert.equal(like.body.creation.likes.length, 1)
+  assert.equal(like.body.creation.like_count, 1)
+  assert.equal(like.body.creation.liked_by_me, true)
+  assert.equal('likes' in like.body.creation, false)
+  assert.equal('user_id' in like.body.creation, false)
   const unlike = await requestJson(`${baseUrl}/api/creations/${articleId}/like`, {
     method: 'POST',
     headers: { 'x-user-id': 'test-user-2' },
   })
-  assert.equal(unlike.body.creation.likes.length, 0)
+  assert.equal(unlike.body.creation.like_count, 0)
 
   // Liking without a user id is rejected.
   const anonLike = await requestJson(`${baseUrl}/api/creations/${articleId}/like`, {
@@ -112,10 +120,11 @@ const run = async () => {
   assert.equal(anonLike.response.status, 401)
 
   // Media tools return real SVG data-URL previews in demo mode.
+  const imageData = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1cAAAAASUVORK5CYII='
   const background = await requestJson(`${baseUrl}/api/media/remove-background`, {
     method: 'POST',
     headers: userHeaders,
-    body: JSON.stringify({ fileName: 'product.png' }),
+    body: JSON.stringify({ fileName: 'product.png', imageData }),
   })
   assert.equal(background.response.status, 200)
   assert.equal(background.body.ok, true)
@@ -125,7 +134,7 @@ const run = async () => {
   const objectRemoval = await requestJson(`${baseUrl}/api/media/remove-object`, {
     method: 'POST',
     headers: userHeaders,
-    body: JSON.stringify({ fileName: 'desk.jpg', objectName: 'Coffee cup' }),
+    body: JSON.stringify({ fileName: 'desk.png', objectName: 'Coffee cup', imageData }),
   })
   assert.equal(objectRemoval.response.status, 200)
   assert.equal(objectRemoval.body.ok, true)
@@ -162,6 +171,45 @@ const run = async () => {
   assert.equal(image.response.status, 200)
   assert.equal(image.body.ok, true)
   assert.ok(image.body.output.length > 20)
+
+  const otherHeaders = { 'content-type': 'application/json', 'x-user-id': 'test-user-2' }
+  for (const action of ['publish', 'delete']) {
+    const forbidden = await requestJson(`${baseUrl}/api/creations/${articleId}/${action}`, {
+      method: 'POST', headers: otherHeaders, body: JSON.stringify({ publish: false }),
+    })
+    assert.equal(forbidden.response.status, 404)
+  }
+  const privateLike = await requestJson(`${baseUrl}/api/creations/${resume.body.id}/like`, { method: 'POST', headers: otherHeaders })
+  assert.equal(privateLike.response.status, 404)
+  for (const record of community.body.creations) {
+    assert.equal('user_id' in record, false)
+    assert.equal('likes' in record, false)
+  }
+  const invalidPublish = await requestJson(`${baseUrl}/api/creations/${articleId}/publish`, {
+    method: 'POST', headers: userHeaders, body: JSON.stringify({ publish: 'false' }),
+  })
+  assert.equal(invalidPublish.response.status, 400)
+  const unpublish = await requestJson(`${baseUrl}/api/creations/${articleId}/publish`, {
+    method: 'POST', headers: userHeaders, body: JSON.stringify({ publish: false }),
+  })
+  assert.equal(unpublish.body.creation.publish, false)
+  assert.equal((await requestJson(`${baseUrl}/api/community`)).body.creations.length, 0)
+
+  const removed = await requestJson(`${baseUrl}/api/creations/${articleId}/delete`, { method: 'POST', headers: userHeaders })
+  assert.equal(removed.response.status, 200)
+  assert.ok(!(await requestJson(`${baseUrl}/api/creations`, { headers: userHeaders })).body.creations.some((c) => c.id === articleId))
+
+  for (const payload of [{ topic: '   ' }, { topic: 'a'.repeat(501) }]) {
+    assert.equal((await requestJson(`${baseUrl}/api/ai/article`, { method: 'POST', headers: userHeaders, body: JSON.stringify(payload) })).response.status, 400)
+  }
+  for (const imageData of ['https://example.com/image.png', 'data:image/png;base64,YWJjZA==', 'data:image/svg+xml;base64,PHN2Zy8+']) {
+    assert.equal((await requestJson(`${baseUrl}/api/media/remove-background`, { method: 'POST', headers: userHeaders, body: JSON.stringify({ imageData }) })).response.status, 400)
+  }
+  const { config } = await import('../src/config.js')
+  config.allowDemoAuth = false
+  assert.equal((await requestJson(`${baseUrl}/api/creations`, { headers: userHeaders })).response.status, 401)
+  config.allowDemoAuth = true
+  assert.equal((await requestJson(`${baseUrl}/api/creations`, { headers: { authorization: 'Bearer invalid', 'x-user-id': 'test-user-1' } })).response.status, 401)
 
   const missing = await requestJson(`${baseUrl}/api/missing`)
   assert.equal(missing.response.status, 404)

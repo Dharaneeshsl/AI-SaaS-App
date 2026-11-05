@@ -11,11 +11,12 @@ const backendDir = path.join(root, 'backend')
 const frontendDir = path.join(root, 'frontend', 'AI-SASS')
 const distIndex = path.join(frontendDir, 'dist', 'index.html')
 
-const run = (command, args, cwd, label) => {
-  const child = spawn(command, args, {
+const run = (script, cwd, label, env = process.env) => {
+  const child = spawn(process.execPath, [script], {
     cwd,
     stdio: ['ignore', 'pipe', 'pipe'],
-    shell: process.platform === 'win32',
+    windowsHide: true,
+    env,
   })
 
   const pipe = (stream) => {
@@ -27,22 +28,30 @@ const run = (command, args, cwd, label) => {
 
   pipe(child.stdout)
   pipe(child.stderr)
+  child.on('error', (error) => {
+    console.error(`[${label}] ${error.message}`)
+    shutdown(1)
+  })
+  child.on('exit', (code) => { if (!stopping) shutdown(code || 1) })
   return child
 }
 
 const children = []
+let stopping = false
 
-const shutdown = () => {
+const shutdown = (code = 0) => {
+  if (stopping) return
+  stopping = true
   for (const child of children) {
     if (!child.killed) {
       child.kill('SIGTERM')
     }
   }
-  process.exit(0)
+  process.exit(code)
 }
 
-process.on('SIGINT', shutdown)
-process.on('SIGTERM', shutdown)
+process.on('SIGINT', () => shutdown())
+process.on('SIGTERM', () => shutdown())
 
 const main = () => {
   if (!fs.existsSync(path.join(backendDir, 'node_modules'))) {
@@ -73,8 +82,8 @@ const main = () => {
 
 const startServers = () => {
   console.log('[start] launching backend API on :8787 and frontend on :4173 ...')
-  children.push(run('npm', ['start'], backendDir, 'backend'))
-  children.push(run('npm', ['run', 'preview'], frontendDir, 'frontend'))
+  children.push(run('src/server.js', backendDir, 'backend'))
+  children.push(run('scripts/preview.cjs', frontendDir, 'frontend', { ...process.env, PORT: process.env.FRONTEND_PORT || '4173' }))
   console.log('')
   console.log('  Frontend:  http://127.0.0.1:4173')
   console.log('  API:       http://127.0.0.1:8787/api/health')

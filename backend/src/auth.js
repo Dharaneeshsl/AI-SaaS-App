@@ -42,6 +42,7 @@ export const getUserId = async (req) => {
 
     try {
       const claims = await clerk.verifyToken(token, { secretKey: config.clerkSecretKey })
+      req.plan = typeof claims.pla === 'string' && claims.pla.split(',').includes(`u:${config.proPlanSlug}`) ? 'pro' : 'free'
       return typeof claims.sub === 'string' && claims.sub ? claims.sub : null
     } catch {
       return null

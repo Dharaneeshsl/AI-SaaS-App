@@ -1,190 +1,63 @@
-# AI SaaS App
+# Quick AI
 
-A full-stack AI SaaS product with a React frontend and Node.js backend API. It includes Clerk-authenticated API requests, live AI content tools powered by Claude, media tool previews, persisted creations, dashboard, community feed, local production builds, and verification scripts.
+React workspace and Node.js API for articles, blog titles, images, image edits, resume reviews, saved creations, and a public community feed.
 
-## Status
+## Run
 
-**The checked demo flow is complete.** Live provider credentials and deployment infrastructure remain environment-specific. The app runs in deterministic **demo mode** locally with zero provider keys; production deployments must configure Clerk and a durable database before accepting real user data.
+Requires Node.js 20+ and npm. From the repository root:
 
-| Area | Status |
-|------|--------|
-| Frontend pages & routing | Complete |
-| Dashboard & community | Complete |
-| AI Article / Titles / Image brief / Resume | Complete (live Claude when key set) |
-| Background & object removal | Complete (visual demo previews) |
-| Creations store, publish, likes | Complete |
-| Auth UI + verified Clerk API tokens + guest demo mode | Complete |
-| Backend health, CORS, rate limits, security headers | Complete |
-| Lint, tests, production build | Complete |
-| Environment keys / deployment services | **You fill these in when ready** |
-
-## Features
-
-- AI Article Writer (live Claude generation)
-- Blog Title Generator (live Claude generation)
-- AI Image Prompt Generator (live Claude generation)
-- Resume Reviewer (live Claude generation)
-- Background Removal (visual SVG demo preview; provider-ready)
-- Object Removal (visual SVG demo preview; provider-ready)
-- Persisted creations with a real per-user dashboard
-- Community feed with publish and like actions
-- Clerk authentication and billing UI (guest demo mode without keys)
-- Backend health check and tool APIs
-- CORS, security headers, request body limits, and rate limiting
-- Deterministic demo mode when no provider key is configured — switches to live Claude generation when `ANTHROPIC_API_KEY` is set
-- Production build pipeline with local static preview
-
-## How AI works
-
-The backend calls Claude (`claude-opus-4-8` by default, via the official `@anthropic-ai/sdk`) for the article, title, image-prompt, and resume tools. When `ANTHROPIC_API_KEY` is not set — or a request fails — it falls back to deterministic demo output so the app is always fully functional with zero configuration. Set `ANTHROPIC_API_KEY` (and optionally `AI_MODEL`) in `backend/.env` to enable live generation.
-
-Media tools (background/object removal) return real visual SVG previews in demo mode so the UI, dashboard, and community feed work end-to-end without an image-editing provider.
-
-Every generation is persisted through a JSON file store (`backend/data/creations.json`), scoped to the requesting user, and surfaced on the dashboard. Users can publish a creation to the community feed and like others' creations. Swap `backend/src/services/store.js` for a real database (Postgres, Mongo, etc.) to scale beyond a single instance.
-
-## Project Structure
-
-```text
-AI-SaaS-App/
-  package.json             # root one-command scripts (install:all, start, verify)
-  scripts/
-    start.cjs              # launches backend + frontend together
-  backend/
-    src/
-      server.js
-      loadEnv.js           # loads backend/.env automatically
-      routes.js
-      config.js
-      http.js
-      rateLimit.js
-      auth.js
-      providers/
-        anthropic.js       # live Claude client (optional, key-gated)
-      services/
-        ai.js              # AI + media tools: live Claude + demo fallback
-        store.js           # JSON file store for creations
-    scripts/
-    package.json
-    .env.example
-    data/                  # created at runtime (gitignored)
-
-  frontend/
-    AI-SASS/
-      src/
-        auth/
-        components/
-        config/            # runtime API base resolution (localhost vs deployed)
-        lib/
-        pages/
-      scripts/
-        preview.cjs        # static server + same-origin /api reverse proxy
-      package.json
-      .env.example
-```
-
-## Requirements
-
-- Node.js 20 or newer
-- npm
-- Python 3, only for the frontend static preview script
-
-## Environment (the only remaining step)
-
-Copy the examples and add keys when you want live providers. **Empty values are fine** — demo mode covers everything.
-
-Frontend (`frontend/AI-SASS/.env`):
-
-```bash
-VITE_CLERK_PUBLISHABLE_KEY=
-VITE_API_BASE_URL=http://127.0.0.1:8787
-```
-
-Backend (`backend/.env` — already scaffolded; see `backend/.env.example`):
-
-```bash
-PORT=8787
-FRONTEND_ORIGIN=http://127.0.0.1:4173
-NODE_ENV=production
-DATA_DIR=data
-ANTHROPIC_API_KEY=
-AI_MODEL=claude-opus-4-8
-CLERK_SECRET_KEY=
-OPENAI_API_KEY=
-```
-
-| Key | Purpose |
-|-----|---------|
-| `ANTHROPIC_API_KEY` | Live Claude generation for text tools |
-| `VITE_CLERK_PUBLISHABLE_KEY` | Live Clerk sign-in / billing UI |
-| `CLERK_SECRET_KEY` | Optional backend JWT hardening later |
-| `OPENAI_API_KEY` | Optional future media provider |
-
-## Install
-
-One command from the repo root:
-
-```bash
+```sh
 npm run install:all
-```
-
-(Or install each package manually: `cd frontend/AI-SASS && npm install`, then `cd ../../backend && npm install`.)
-
-## Run Locally (one command)
-
-```bash
-npm start
-```
-
-This starts the backend API on `:8787` and the frontend on `:4173` together (building the frontend first if needed), and shuts both down on Ctrl+C.
-
-Default URLs:
-
-- Frontend: `http://127.0.0.1:4173`
-- Backend health: `http://127.0.0.1:8787/api/health`
-
-Or run each service separately:
-
-```bash
-cd backend && npm start
-cd frontend/AI-SASS && npm run build && npm run preview
-```
-
-## Verify everything
-
-```bash
-npm run verify
-```
-
-Runs backend lint, backend API tests, frontend lint, and the frontend production build in one shot.
-
-## Deployment / reverse proxy
-
-The frontend resolves its API base at runtime:
-
-- Served from **localhost** → uses `VITE_API_BASE_URL` directly (default `http://127.0.0.1:8787`, CORS handled by the backend).
-- Served from **any non-localhost host** (preview URL, reverse proxy, production domain) → automatically switches to **same-origin relative** `/api` requests, so a loopback URL baked into the build can never point at the visitor's own machine. The preview server (`npm run preview`) already proxies `/api/*` to `http://127.0.0.1:8787` (override with `API_PROXY_ORIGIN`). In production, point your reverse proxy's `/api` route at the backend, or set `VITE_API_BASE_URL` to your API's full public domain.
-
-## Scripts
-
-Frontend:
-
-```bash
-npm run lint
 npm run build
-npm run preview
-npm audit
-```
-
-Backend:
-
-```bash
-npm run lint
-npm test
 npm start
-npm audit
 ```
 
-## API Endpoints
+On Windows with PowerShell script execution disabled, use `npm.cmd`.
+
+- Frontend: http://127.0.0.1:4173
+- API health: http://127.0.0.1:8787/api/health
+
+Without credentials, local development uses a shared demo guest and labeled sample results. Never use demo identity headers for real user data.
+
+## Configure providers
+
+Copy `backend/.env.example` to `backend/.env` and `frontend/AI-SASS/.env.example` to `frontend/AI-SASS/.env`. Rebuild after changing frontend settings.
+
+| Variable | Purpose |
+| --- | --- |
+| `ANTHROPIC_API_KEY` | Live articles, titles, resume reviews, and image briefs |
+| `AI_MODEL` | Claude model supported by your provider account |
+| `OPENAI_API_KEY` | Actual image generation, background removal, and object removal |
+| `IMAGE_MODEL` | Image model; defaults to `gpt-image-1.5` |
+| `CLERK_SECRET_KEY` | Server verification of Clerk session tokens |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Frontend Clerk sign-in and configured billing UI |
+| `FRONTEND_ORIGIN` | Allowed frontend origin |
+| `ALLOW_DEMO_AUTH` | Explicit demo identity override; keep false in production |
+| `DATA_DIR` | Creations storage directory, relative to backend process working directory |
+| `TRUST_PROXY` | Trust forwarded IPs only behind your own reverse proxy |
+
+The backend example defaults to production authentication. To run a local demo with that file, explicitly use `NODE_ENV=development` and `ALLOW_DEMO_AUTH=true`.
+
+Image uploads include the actual file data. Both browser and server accept PNG, JPEG, or WebP up to 5 MB; the server checks signatures and rejects remote image URLs. Live media requests use the [OpenAI Images API](https://developers.openai.com/api/docs/guides/image-generation). Generated cutouts and object edits are model outputs and may change details of the original image.
+
+Without OpenAI credentials, image generation produces a text brief and image edits return labeled SVG demonstrations. The demonstrations do not modify an upload. Configured providers return an error on failure instead of silently saving a sample as a successful live result. Automated provider tests use mocked responses; paid live requests are not part of verification.
+
+## Saved creations and community
+
+Generated results are private by default. The dashboard supports full result viewing, downloading, publishing, unpublishing, and confirmed deletion. Only owners can change publication or delete a result. Only published creations can be liked. Public responses expose aggregate like counts and the viewer's own like state, without owner or liker identifiers.
+
+MongoDB stores production creations and shared monthly usage when configured. The local JSON store serializes mutations and atomically replaces its files; failed writes leave previous creation data intact. The JSON fallback supports one backend process. Configure backups, retention policies, and storage operations for your production database.
+
+## Verify
+
+```sh
+npm run verify
+npm run test:smoke
+```
+
+Verification checks backend module imports, API behavior, creation access controls, concurrent persistence, failed-write recovery, quota persistence, mocked image-provider contracts and errors, frontend syntax/imports, and the production build. Smoke tests start isolated local servers and check the built frontend, deep-link assets, API proxy, and shutdown. Run `npm run test:browser` separately for Chrome workspace interaction coverage.
+
+## API
 
 ```text
 GET  /api/health
@@ -194,41 +67,23 @@ POST /api/ai/image
 POST /api/ai/resume
 POST /api/media/remove-background
 POST /api/media/remove-object
-GET  /api/creations                 # creations owned by the requesting user
-GET  /api/community                 # published creations
-POST /api/creations/:id/publish     # publish/unpublish your creation
-POST /api/creations/:id/like        # toggle a like
+GET  /api/creations
+GET  /api/community
+POST /api/creations/:id/publish  { "publish": true | false }
+POST /api/creations/:id/delete
+POST /api/creations/:id/like
 ```
 
-User identity is read from a verified `Authorization: Bearer <clerk-jwt>` header in production. The `x-user-id` header is accepted only when `ALLOW_DEMO_AUTH=true` (enabled automatically outside production) and is intended for local demo/test use only. The frontend obtains a Clerk session token automatically when Clerk is configured.
+Protected requests require `Authorization: Bearer <Clerk session token>`. Development demo requests may use `x-user-id` when enabled. Media payloads use `imageData` (base64 data URL), optional `fileName`, and `objectName` for object removal.
 
-Example request:
+The preview server proxies `/api` to `http://127.0.0.1:8787`; override with `API_PROXY_ORIGIN`. Set `FRONTEND_PORT` to change the root launcher's frontend port. Deployed builds use same-origin API requests when their configured backend URL is loopback. Configure a public API base or reverse proxy for deployment.
 
-```bash
-curl -X POST http://127.0.0.1:8787/api/ai/article \
-  -H "Content-Type: application/json" \
-  -d "{\"topic\":\"AI for founders\",\"tone\":\"Professional\",\"length\":\"Short\"}"
-```
+## Production configuration
 
-## Production Notes
+MongoDB is selected with `MONGODB_URI` and `MONGODB_DATABASE` (default `quickai`). Creation ownership, publication, deletion, and likes use MongoDB operations when configured. Without a URI, local development uses JSON files.
 
-- Configure both `VITE_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` for verified Clerk authentication and billing UI. Keep `ALLOW_DEMO_AUTH=false` in production.
-- Configure `ANTHROPIC_API_KEY` (and optionally `AI_MODEL`) to enable live Claude generation; without it the AI tools run in deterministic demo mode.
-- Keep `FRONTEND_ORIGIN` locked to your deployed frontend domain in production. Set `TRUST_PROXY=true` only when every request reaches the backend through your own trusted reverse proxy.
-- Media tools return visual demo previews out of the box; plug in an image-editing provider later for photoreal cutouts.
-- Persistence uses a JSON file store (`backend/src/services/store.js`) for the checked single-instance demo. Swap it for a managed database with retention, deletion, and access policies before running multiple backend instances or storing sensitive production data.
+Generation quotas are enforced before provider requests. Free users receive `FREE_MONTHLY_LIMIT` (default 10); verified Clerk user-plan claims matching `CLERK_PRO_PLAN_SLUG` (default `pro`) receive `PRO_MONTHLY_LIMIT` (default 500). All tools share the allowance. Quotas reset on UTC calendar-month boundaries, survive restarts, and are independent of creation deletion. Provider or save failures refund the reserved allowance. MongoDB quota updates are conditional atomic updates across API instances; local JSON quotas support one process.
 
-## Verification Status
+Run `npm run test:browser` after building for Chrome regression coverage of generation, download, publication, likes, unpublication, deletion, deep links, and missing pages. Install Chrome on the machine running these tests.
 
-The project was verified with:
-
-- Frontend lint passing
-- Frontend production build passing
-- Backend lint passing
-- Backend API tests passing (including auth rejection, validation, media, resume, image, creations, likes)
-- Full smoke path for frontend, backend health, and backend AI/media routes
-- Live end-to-end run: both servers up, all 6 tools, publish/like/community, dashboard scoping, SPA deep links, and same-origin `/api` proxying all verified
-
-## License
-
-Private project. Add a license before publishing publicly if needed. “Launch ready” still requires your production Clerk, AI/media provider, database, secrets, domain, monitoring, backups, and deployment review.
+Production credentials, database provisioning, Clerk Billing plan configuration, provider account access, deployment, backups, and live integration validation remain environment setup. The code can be reviewed and tested locally without sharing secrets. Automated checks do not certify live services or universal startup completeness.
