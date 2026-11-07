@@ -9,6 +9,7 @@ process.env.ALLOW_DEMO_AUTH = 'true'
 process.env.ANTHROPIC_API_KEY = ''
 process.env.OPENAI_API_KEY = ''
 process.env.CLERK_SECRET_KEY = ''
+process.env.MONGODB_URI = ''
 process.env.RATE_LIMIT_MAX = '1000'
 // Isolate persistence so tests never touch the real data directory.
 const testDataDir = await mkdtemp(path.join(tmpdir(), 'ai-sass-test-'))

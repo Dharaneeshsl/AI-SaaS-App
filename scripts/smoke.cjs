@@ -28,7 +28,7 @@ const main = async () => {
   try {
     const backend = await launch('src/server.js', path.join(root, 'backend'), {
       PORT: '0', NODE_ENV: 'development', ALLOW_DEMO_AUTH: 'true', DATA_DIR: directory,
-      ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '', CLERK_SECRET_KEY: '',
+      ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '', CLERK_SECRET_KEY: '', MONGODB_URI: '',
     }, 'AI SaaS backend listening')
     const backendPort = backend.match(/127\.0\.0\.1:(\d+)/)[1]
     const frontend = await launch('scripts/preview.cjs', path.join(root, 'frontend', 'AI-SASS'), {

@@ -16,18 +16,20 @@ const App = () => {
     <div>
       <Routes>
         <Route path="/" element={<Home />} />
-        {/* convenience route: standalone Layout (keeps backwards compatibility with /layout) */}
+        {/* convenience redirects */}
         <Route path="/layout" element={<Navigate to="/ai" replace />} />
+        <Route path="/dashboard" element={<Navigate to="/ai" replace />} />
+        <Route path="/community" element={<Navigate to="/ai/community" replace />} />
         <Route path="/ai" element={<Layout />} >
-         <Route index element={<DashBoard />}/>
-         <Route path="blogtitle" element={<Blogtitle />}/>
-         <Route path="writearticle" element={<WriteArticle />}/>
-         <Route path="reviewresume" element={<ReviewResume />}/>
-         <Route path="removebackground" element={<RemoveBackground />}/>
-         <Route path="removeobject" element={<RemoveObject />}/>
-         <Route path="generateimages" element={<GenerateImages />}/>
-         <Route path="community" element={<Community />}/> 
-         </Route>
+          <Route index element={<DashBoard />}/>
+          <Route path="blogtitle" element={<Blogtitle />}/>
+          <Route path="writearticle" element={<WriteArticle />}/>
+          <Route path="reviewresume" element={<ReviewResume />}/>
+          <Route path="removebackground" element={<RemoveBackground />}/>
+          <Route path="removeobject" element={<RemoveObject />}/>
+          <Route path="generateimages" element={<GenerateImages />}/>
+          <Route path="community" element={<Community />}/> 
+        </Route>
         <Route path="*" element={<main className="mx-auto max-w-xl p-12 text-center"><h1 className="text-2xl font-semibold">Page not found</h1><p className="my-4">This page does not exist.</p><Link to="/" className="text-blue-600 underline">Return home</Link></main>} />
       </Routes> 
     </div>

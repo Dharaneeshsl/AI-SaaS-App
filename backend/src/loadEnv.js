@@ -41,6 +41,7 @@ export const loadEnv = (filePath) => {
   }
 }
 
-// Load backend/.env relative to this package (works regardless of cwd).
+// Load backend/.env relative to this package, and workspace root .env if present.
 const backendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 loadEnv(path.join(backendRoot, '.env'))
+loadEnv(path.join(backendRoot, '..', '.env'))

@@ -96,8 +96,55 @@ export const BillingPlans = () => {
 
   if (!isConfigured) {
     return (
-      <div className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-600">
-        Connect Clerk billing in your environment to show live subscription plans.
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mt-6 text-left">
+        {/* Free Plan */}
+        <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm flex flex-col justify-between hover:shadow-md transition">
+          <div>
+            <span className="inline-block rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 uppercase tracking-wide">Starter</span>
+            <h3 className="mt-4 text-2xl font-bold text-gray-900">Free Plan</h3>
+            <p className="mt-2 text-sm text-gray-500">Perfect for exploring and creating your first AI assets.</p>
+            <div className="mt-6 flex items-baseline text-4xl font-extrabold text-gray-900">
+              $0
+              <span className="ml-1 text-sm font-medium text-gray-500">/month</span>
+            </div>
+            <ul className="mt-6 space-y-3 text-sm text-gray-600">
+              <li className="flex items-center gap-2">✓ 10 AI generations per month</li>
+              <li className="flex items-center gap-2">✓ Article &amp; Blog title writers</li>
+              <li className="flex items-center gap-2">✓ Resume reviewer tool</li>
+              <li className="flex items-center gap-2">✓ Community feed access &amp; sharing</li>
+              <li className="flex items-center gap-2">✓ Fast browser downloads</li>
+            </ul>
+          </div>
+          <a href="/ai" className="mt-8 block w-full rounded-xl bg-gray-100 py-3 text-center text-sm font-semibold text-gray-800 transition hover:bg-gray-200">
+            Get Started Free
+          </a>
+        </div>
+
+        {/* Pro Plan */}
+        <div className="rounded-2xl border-2 border-blue-600 bg-white p-8 shadow-md flex flex-col justify-between relative hover:shadow-lg transition">
+          <div className="absolute -top-3 right-6 rounded-full bg-blue-600 px-3 py-0.5 text-xs font-semibold text-white uppercase tracking-wider">
+            Most Popular
+          </div>
+          <div>
+            <span className="inline-block rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-600 uppercase tracking-wide">Pro</span>
+            <h3 className="mt-4 text-2xl font-bold text-gray-900">Pro Plan</h3>
+            <p className="mt-2 text-sm text-gray-500">For creators and teams who need unlimited creativity.</p>
+            <div className="mt-6 flex items-baseline text-4xl font-extrabold text-gray-900">
+              $19
+              <span className="ml-1 text-sm font-medium text-gray-500">/month</span>
+            </div>
+            <ul className="mt-6 space-y-3 text-sm text-gray-600">
+              <li className="flex items-center gap-2">✓ 500 AI generations per month</li>
+              <li className="flex items-center gap-2">✓ Claude 3.5 &amp; GPT-image generation</li>
+              <li className="flex items-center gap-2">✓ AI background cutout &amp; object removal</li>
+              <li className="flex items-center gap-2">✓ Long-form high-capacity articles</li>
+              <li className="flex items-center gap-2">✓ Priority generation queue</li>
+            </ul>
+          </div>
+          <a href="/ai" className="mt-8 block w-full rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 text-center text-sm font-semibold text-white shadow-sm transition hover:opacity-95">
+            Upgrade to Pro
+          </a>
+        </div>
       </div>
     )
   }

@@ -7,6 +7,7 @@ import path from 'node:path'
 test('cold concurrent writes survive restart and failed writes never enter the cache', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'ai-saas-store-'))
   process.env.DATA_DIR = directory
+  process.env.MONGODB_URI = ''
   const store = await import('../src/services/store.js')
   const file = path.join(directory, 'creations.json')
   try {

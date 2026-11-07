@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Calendar, Clock, Image as ImageIcon, Loader2, Sparkles } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Calendar, Clock, Image as ImageIcon, Loader2, Sparkles, ArrowRight } from 'lucide-react'
 import SavedCreation from '../components/SavedCreation'
 import { fetchCreations } from '../lib/api'
 import { useAuth } from '../auth/authContext'
@@ -141,6 +142,26 @@ const DashBoard = () => {
           <p className="text-gray-600 max-w-md mx-auto mb-6">
             Select any AI tool from the sidebar to draft content, prepare image edits, or review a resume.
           </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link
+              to="/ai/writearticle"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition"
+            >
+              Write Article <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+            <Link
+              to="/ai/blogtitle"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+            >
+              Generate Titles
+            </Link>
+            <Link
+              to="/ai/generateimages"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+            >
+              Create Images
+            </Link>
+          </div>
         </div>
       )}
     </div>

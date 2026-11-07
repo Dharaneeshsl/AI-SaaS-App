@@ -31,3 +31,27 @@ test('unknown pages offer a working home link', async ({ page }) => {
   await page.getByRole('link', { name: 'Return home' }).click()
   await expect(page.getByRole('button', { name: 'Start creating now' })).toBeVisible()
 })
+
+test('navigation, sidebar links, landing pricing plans, and redirects work seamlessly', async ({ page }) => {
+  // Check landing page pricing
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Choose Your Plan' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Free Plan' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Pro Plan' })).toBeVisible()
+
+  // Test redirect from /dashboard to /ai
+  await page.goto('/dashboard')
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+
+  // Use sidebar navigation to go to Community
+  await page.getByText('Community', { exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Community' })).toBeVisible()
+
+  // Use sidebar navigation to go to AI Article Writer
+  await page.getByText('AI Article Writer', { exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'AI Article Writer' })).toBeVisible()
+
+  // Use Top Navbar "Home" button
+  await page.getByRole('button', { name: 'Home' }).click()
+  await expect(page.getByRole('button', { name: 'Start creating now' })).toBeVisible()
+})

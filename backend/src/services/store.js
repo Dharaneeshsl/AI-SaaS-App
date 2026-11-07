@@ -32,7 +32,8 @@ const mongoCollection = async () => {
       return collection
     }).catch((error) => {
       mongoPromise = null
-      throw new Error(`MongoDB unavailable: ${error.message}`)
+      console.warn(`[store] MongoDB unavailable (${error.message}). Falling back to local store.`)
+      return null
     })
   }
   return mongoPromise

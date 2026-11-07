@@ -59,6 +59,7 @@ const loadDotEnv = (filePath) => {
 const readFrontendEnv = () => {
   const fromFile = {
     ...loadDotEnv(path.resolve('.env.example')),
+    ...loadDotEnv(path.resolve('../../.env')),
     ...loadDotEnv(path.resolve('.env')),
   }
 
